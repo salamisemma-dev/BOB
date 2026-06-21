@@ -96,8 +96,10 @@ Output: a short, testable definition of done.
 
 ## Phase 1.5 — Spec layer (Spec-Driven Development)
 
-This is where intent becomes permanent system memory. Read `references/spec-driven.md`
-for the full model, spec types, and templates. In short:
+This is where intent becomes permanent system memory. The canonical, machine-checkable
+format is `docs/SPEC-FORMAT.md` (copy-paste templates in `templates/`); the conceptual
+model is `references/spec-driven.md`; a complete worked example is `examples/todo-api/`.
+In short:
 
 1. **Constitution.** If `constitution.md` doesn't exist at the project root, create it:
    technology standards, naming conventions, architecture rules, governance policy,
@@ -110,7 +112,9 @@ for the full model, spec types, and templates. In short:
    assumptions, constraints, downstream dependencies, and intent behind choices.
 3. **Approval gate.** Get the user's OK on the spec before any code. No code without
    an approved spec; when something must change, change the spec first, then regenerate.
-4. Commit the constitution + specs so they're version-controlled from the start.
+4. **Validate.** Run `python scripts/bob_validate.py <project-root>` — it must pass
+   before code. This is the executable check (also runs in CI), not a formality.
+5. Commit the constitution + specs so they're version-controlled from the start.
 
 ---
 
@@ -179,8 +183,9 @@ that grew. (Some swarm agents may be unavailable in a given session — fall bac
 Specs are meant to be enforced automatically, not by goodwill. When the project has
 (or wants) CI: wire a job that validates every spec and fails the build on drift
 between spec and code — schema mismatch, missing validation rule, constitution
-violation. Generate as much implementation as possible from the specs. Details and a
-starter pipeline shape live in `references/spec-driven.md`.
+violation. Generate as much implementation as possible from the specs. Ship
+`scripts/bob_validate.py` + `.github/workflows/bob-validate-template.yml` into the
+project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 
 ---
 
@@ -212,6 +217,12 @@ starter pipeline shape live in `references/spec-driven.md`.
 - `references/spec-driven.md` — SDD model, constitution, 6 spec types + templates, CI/CD.
 - `references/retrofit-existing.md` — reorganize an existing/drifted project safely.
 - `references/sdd-pva.md` — plan van aanpak: pros, cons, and a fix for each con.
+
+## Tooling (in the plugin repo)
+- `scripts/bob_validate.py` — dependency-free spec validator; run it in Phase 1.5 and CI.
+- `scripts/bob_analyze.py` — retrofit scaffolder: drafts constitution + spec stubs from code.
+- `templates/` — constitution + spec templates. `docs/SPEC-FORMAT.md` — the format spec.
+- `examples/todo-api/` — a complete, validating reference project.
 
 ## Dependencies
 Calls (via `Skill`): `context-memory-bank`, `dox`, optionally

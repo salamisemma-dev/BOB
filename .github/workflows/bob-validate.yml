@@ -1,0 +1,26 @@
+name: bob-validate
+
+# Enforces the BOB spec layer automatically: spec-vs-format drift = red build.
+# This is the "executable" part of "executable specs" — discipline by CI, not goodwill.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Validator self-tests
+        run: python -m unittest tests.test_bob_validate -v
+
+      - name: Validate shipped example spec layer
+        run: python scripts/bob_validate.py examples/todo-api
+
+      - name: Demo unit tests (spec-traced)
+        run: python -m unittest discover -s examples/todo-api/tests -v

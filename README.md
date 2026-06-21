@@ -16,13 +16,44 @@ token cost. Full details: [`skills/bob/SKILL.md`](skills/bob/SKILL.md) and
 
 ```
 bob-plugin/
-├── .claude-plugin/
-│   ├── plugin.json         # plugin manifest
-│   └── marketplace.json    # marketplace listing (so it's installable)
-├── commands/
-│   └── bob.md              # /bob slash command
-└── skills/
-    └── bob/                # the skill itself + references (SDD, retrofit, PvA)
+├── .claude-plugin/         # plugin.json + marketplace.json (installable)
+├── commands/bob.md         # /bob slash command
+├── skills/bob/             # the skill + references (SDD, retrofit, PvA)
+├── scripts/
+│   ├── bob_validate.py     # dependency-free spec validator (CI-enforced)
+│   └── bob_analyze.py      # retrofit scaffolder for existing projects
+├── templates/              # constitution + spec templates (copy-paste)
+├── examples/todo-api/      # complete, validating demo: specs + code + tests
+├── tests/                  # validator unit tests (12)
+├── docs/                   # SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, TUTORIAL, etc.
+├── .github/workflows/      # CI: spec validation + tests
+└── AGENTS.md               # DOX context tree
+```
+
+## The spec layer is real (not just prose)
+
+BOB ships the executable backbone the workflow promises:
+
+- **Canonical spec format** — [`docs/SPEC-FORMAT.md`](docs/SPEC-FORMAT.md) + copy-paste
+  [`templates/`](templates/). Markdown + YAML frontmatter; the *Contract* section embeds
+  the formal artifact per type (JSON Schema, DDL, rules).
+- **Validator** — `python scripts/bob_validate.py <project>` fails on missing
+  constitution, bad spec type, empty approved sections, dangling `depends_on`, duplicate
+  ids. Tested (12 cases).
+- **CI** — [`.github/workflows/bob-validate.yml`](.github/workflows/bob-validate.yml)
+  turns spec drift into a red build.
+- **Worked demo** — [`examples/todo-api/`](examples/todo-api/): all six spec types,
+  conforming code, 9 spec-traced tests, validates clean.
+- **Retrofit tooling** — `python scripts/bob_analyze.py <project> --write` drafts a
+  constitution + spec stubs from existing code.
+- **Honest trade-offs** — [`docs/PVA.md`](docs/PVA.md): every review criticism with the
+  fix that shipped, and the one gap (metrics) left open on purpose.
+
+Quick verify:
+```
+python -m unittest tests.test_bob_validate -v
+python -m unittest discover -s examples/todo-api/tests -v
+python scripts/bob_validate.py examples/todo-api
 ```
 
 ## Install

@@ -1,0 +1,19 @@
+# Copy this into YOUR project's .github/workflows/ to enforce its BOB spec layer.
+# Rename to bob-validate.yml. Assumes scripts/bob_validate.py is vendored into your
+# repo (copy it from the BOB plugin) or installed on PATH.
+name: bob-validate
+
+on: [push, pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Validate spec layer (fail on drift)
+        run: python scripts/bob_validate.py .
+      # - name: Tests
+      #   run: python -m unittest discover -s tests

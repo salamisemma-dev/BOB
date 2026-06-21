@@ -52,12 +52,22 @@ BOB ships the executable backbone the workflow promises:
 - **Honest trade-offs** — [`docs/PVA.md`](docs/PVA.md): every review criticism with the
   fix that shipped, and the one gap (with/without-BOB ROI) left open on purpose.
 
+- **Spec-to-test traceability gate** — `bob_validate.py` fails any approved spec whose
+  `Verification` doesn't reference a real, existing test. Specs can't "look valid" while
+  nothing exercises them. (`ai-workflow`/`verification: manual` specs exempt.)
+- **Runtime / golden checks** — `scripts/bob_runtime_check.py` validates schema specs
+  against `golden/<spec-id>/valid|invalid/*.json` sample data (stdlib JSON-Schema subset).
+- **Adoption gate / fail-fast** — `scripts/bob_ready.py` blocks code on un-disciplined
+  projects: 6-point readiness check (constitution, approved spec, validator, runtime,
+  tests, DOX). See [`docs/ADOPTION.md`](docs/ADOPTION.md).
+
 Quick verify:
 ```
-python -m unittest tests.test_bob_validate -v        # validator: 12
-python -m unittest tests.test_bob_benchmark -v       # benchmark: 7
+python -m unittest discover -s tests -v                     # tooling: 38
 python -m unittest discover -s examples/todo-api/tests -v   # demo: 9
-python scripts/bob_validate.py examples/todo-api
+python scripts/bob_validate.py examples/todo-api            # structure + traceability
+python scripts/bob_runtime_check.py examples/todo-api       # golden data
+python scripts/bob_ready.py examples/todo-api               # READY 6/6
 python scripts/bob_benchmark.py --json
 ```
 

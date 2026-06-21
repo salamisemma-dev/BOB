@@ -90,21 +90,22 @@ projects and the `examples/` demo.
 
 ## Verification
 
-- `python -m unittest tests.test_bob_validate -v` (validator: 12 tests)
-- `python -m unittest tests.test_bob_benchmark -v` (benchmark: 7 tests)
+- `python -m unittest discover -s tests -v` (tooling: 38 — validator 19, benchmark 7, runtime 9, ready 3)
 - `python -m unittest discover -s examples/todo-api/tests -v` (demo: 9 tests)
-- `python scripts/bob_validate.py examples/todo-api` → must print OK
-- `python scripts/bob_benchmark.py --json` → exit 0, validator+tests pass
+- `python scripts/bob_validate.py examples/todo-api` → OK (structure + spec-to-test gate)
+- `python scripts/bob_runtime_check.py examples/todo-api` → OK (golden data)
+- `python scripts/bob_ready.py examples/todo-api` → READY 6/6
+- `python scripts/bob_benchmark.py --json` → exit 0
 
 ## Child DOX Index
 
-- [scripts/AGENTS.md](scripts/AGENTS.md) — the executable backbone: spec validator + retrofit scaffolder. Dependency-free, tested.
-- [examples/todo-api/AGENTS.md](examples/todo-api/AGENTS.md) — the worked demo: a complete, validating spec layer + conforming code + spec-traced tests.
+- [scripts/AGENTS.md](scripts/AGENTS.md) — executable backbone: validator + traceability gate, runtime/golden checks, adoption/ready gate, retrofit scaffolder, benchmark. Dependency-free, tested.
+- [examples/todo-api/AGENTS.md](examples/todo-api/AGENTS.md) — worked demo: complete validating spec layer + golden data + conforming code + spec-traced tests.
 - Other top-level paths (no child doc needed yet):
   - `.claude-plugin/` — plugin + marketplace manifests (JSON; keep valid).
   - `skills/bob/` — the skill itself; SKILL.md is the workflow contract, `references/` the deep docs.
   - `templates/` — copy-paste spec, constitution, and downstream CI templates.
-  - `docs/` — SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, TUTORIAL, TROUBLESHOOTING, BENCHMARK, PVA.
+  - `docs/` — SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, ADOPTION, TUTORIAL, TROUBLESHOOTING, BENCHMARK, PVA.
   - `.github/workflows/` — CI that runs the verification above.
   - `commands/` — the `/bob` slash command.
 

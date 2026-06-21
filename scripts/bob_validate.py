@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -99,8 +100,10 @@ def section_bodies(body: str):
     return out
 
 
-def validate(root: Path):
-    """Return (errors, warnings) lists of human-readable strings."""
+def validate(root: Path, traceability: bool = True):
+    """Return (errors, warnings) lists of human-readable strings.
+
+    traceability=True also enforces the spec-to-test gate (see check_traceability)."""
     errors = []
     warnings = []
 
@@ -168,10 +171,10 @@ def validate(root: Path):
                     "rules — that's the permanent memory)."
                 )
 
-        records.append((rel, fm))
+        records.append((rel, fm, secs))
 
     # Cross-reference integrity (after collecting all ids).
-    for rel, fm in records:
+    for rel, fm, _secs in records:
         for dep in fm.get("depends_on", []) or []:
             if dep not in ids:
                 errors.append(
@@ -191,17 +194,74 @@ def validate(root: Path):
     if not spec_files:
         warnings.append("specs/ exists but contains no .md spec files.")
 
+    if traceability:
+        errors.extend(check_traceability(root, records))
+
     return errors, warnings
+
+
+# Matches a test file path with an optional ::test_name (e.g. tests/test_x.py::test_y).
+_TEST_REF_RE = re.compile(r"([\w./\\-]+\.py)(?:::(\w+))?")
+
+
+def parse_test_refs(verification_text: str):
+    """Return [(path, test_name_or_None)] for every .py reference in the text."""
+    return [(m.group(1).replace("\\", "/"), m.group(2)) for m in _TEST_REF_RE.finditer(verification_text)]
+
+
+def check_traceability(root, records):
+    """Anti-vibe gate: every APPROVED spec must tie to a real test, so a spec can't
+    just 'look valid' while nothing exercises the behavior. A spec satisfies this when
+    its Verification section names at least one test file that exists (and, if a
+    ::test_name is given, that the test is defined in that file).
+
+    Exempt: type 'ai-workflow' (process/instruction specs) and any spec with frontmatter
+    `verification: manual` — those are reviewed by a human, not a unit test.
+    """
+    errors = []
+    for rel, fm, secs in records:
+        if fm.get("status") != "approved":
+            continue
+        if fm.get("type") == "ai-workflow":
+            continue
+        if str(fm.get("verification", "")).lower() == "manual":
+            continue
+        ver = secs.get("Verification", "") or ""
+        refs = parse_test_refs(ver)
+        if not refs:
+            errors.append(
+                f"{rel}: approved spec has no test reference in its Verification section. "
+                "Tie it to a real test (e.g. `tests/x.py::test_y`), or — for a process "
+                "spec — use type 'ai-workflow' or add frontmatter `verification: manual`."
+            )
+            continue
+        for path, name in refs:
+            target = (root / path)
+            if not target.is_file():
+                errors.append(
+                    f"{rel}: Verification references test file '{path}' which does not "
+                    "exist. The spec-to-test link is broken (green CI would be a lie)."
+                )
+            elif name:
+                content = target.read_text(encoding="utf-8", errors="replace")
+                if f"def {name}" not in content:
+                    errors.append(
+                        f"{rel}: Verification references test '{name}' not found in "
+                        f"'{path}'. Rename the reference or add the test."
+                    )
+    return errors
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Validate a BOB spec-driven repo.")
     ap.add_argument("root", nargs="?", default=".", help="project root (default: .)")
     ap.add_argument("--json", action="store_true", help="emit JSON report")
+    ap.add_argument("--no-traceability", action="store_true",
+                    help="skip the spec-to-test gate (structural checks only)")
     args = ap.parse_args(argv)
 
     root = Path(args.root).resolve()
-    errors, warnings = validate(root)
+    errors, warnings = validate(root, traceability=not args.no_traceability)
 
     if args.json:
         print(json.dumps({"root": str(root), "errors": errors, "warnings": warnings}, indent=2))

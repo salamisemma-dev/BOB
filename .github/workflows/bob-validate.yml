@@ -16,17 +16,20 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Validator self-tests
-        run: python -m unittest tests.test_bob_validate -v
+      - name: Tooling self-tests (validator, traceability, runtime, ready, benchmark)
+        run: python -m unittest discover -s tests -v
 
-      - name: Validate shipped example spec layer
+      - name: Validate shipped example spec layer (structure + spec-to-test gate)
         run: python scripts/bob_validate.py examples/todo-api
+
+      - name: Runtime/golden checks on shipped example
+        run: python scripts/bob_runtime_check.py examples/todo-api
+
+      - name: Adoption gate (example must be BOB-ready)
+        run: python scripts/bob_ready.py examples/todo-api
 
       - name: Demo unit tests (spec-traced)
         run: python -m unittest discover -s examples/todo-api/tests -v
-
-      - name: Benchmark harness self-tests
-        run: python -m unittest tests.test_bob_benchmark -v
 
       - name: Benchmark the demo (quality + footprint gate)
         run: python scripts/bob_benchmark.py --json

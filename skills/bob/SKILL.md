@@ -52,6 +52,15 @@ Three ideas drive every phase:
 Run the phases in order. Track them with TodoWrite so drift is visible. Don't skip a
 phase — if one genuinely doesn't apply, say why, don't silently drop it.
 
+## Fail-fast anti-vibe gate (before any code)
+
+When the user says "build X" / "add Y", refuse to generate code until the chain exists
+for *that* work: an **approved spec** whose **Verification names a real test**, with the
+validator green. Missing any → stop and produce it first (Phase 1.5). Run it *light* for
+tiny tasks (mini-spec + one test ref) but never skip it — a spec untied to a test is how
+"looks valid, behaves wrong" slips in. On an existing project, `python scripts/bob_ready.py
+<root>` is the machine check; full criteria in `docs/ADOPTION.md`.
+
 ---
 
 ## Pick the mode first
@@ -138,7 +147,9 @@ fix the spec/plan, don't paper over it.
 For each task (respect sequencing; parallelize independent tasks):
 
 1. **Dispatch a sub-agent** via the `Agent` tool (`coder`, `general-purpose`, or a
-   `tester`-style role) with the exact task slice + the spec it implements. Instruct:
+   `tester`-style role). A sub-agent may only work from a **spec id + explicit
+   acceptance criteria** (the spec's Contract + Verification) — never "go build the whole
+   feature", which is where drift starts. One spec slice per agent. Instruct:
    red → green → refactor. Independent tasks → spawn in parallel in one message.
    Pass `model: "haiku"` (or `sonnet`) for routine implementation — the two-tier cost
    saving. Keep the expensive model for thinking and review.
@@ -219,10 +230,14 @@ project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 - `references/sdd-pva.md` — plan van aanpak: pros, cons, and a fix for each con.
 
 ## Tooling (in the plugin repo)
-- `scripts/bob_validate.py` — dependency-free spec validator; run it in Phase 1.5 and CI.
+- `scripts/bob_validate.py` — spec validator + spec-to-test traceability gate; Phase 1.5 + CI.
+- `scripts/bob_runtime_check.py` — golden-file checks: schema specs verified vs sample data.
+- `scripts/bob_ready.py` — adoption / fail-fast gate; exit 0 only if a project is BOB-ready.
 - `scripts/bob_analyze.py` — retrofit scaffolder: drafts constitution + spec stubs from code.
-- `templates/` — constitution + spec templates. `docs/SPEC-FORMAT.md` — the format spec.
-- `examples/todo-api/` — a complete, validating reference project.
+- `scripts/bob_benchmark.py` — quality + token-footprint baseline.
+- `templates/` — constitution + spec templates. `docs/SPEC-FORMAT.md`, `docs/ADOPTION.md`,
+  `docs/BENCHMARK.md` — the format, adoption gate, and benchmarking docs.
+- `examples/todo-api/` — a complete, validating reference project (specs + golden + tests).
 
 ## Dependencies
 Calls (via `Skill`): `context-memory-bank`, `dox`, optionally

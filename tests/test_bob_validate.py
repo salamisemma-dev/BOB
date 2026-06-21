@@ -34,7 +34,7 @@ rules
 ## Downstream impact
 impact
 ## Verification
-test
+See `tests/test_thing.py::test_it`.
 """
 
 
@@ -65,6 +65,7 @@ class TestValidate(unittest.TestCase):
     def _root(self):
         d = Path(tempfile.mkdtemp())
         write(d, "constitution.md", "# c")
+        write(d, "tests/test_thing.py", "def test_it():\n    pass\n")
         return d
 
     def test_valid_repo_passes(self):
@@ -87,7 +88,8 @@ class TestValidate(unittest.TestCase):
 
     def test_missing_section(self):
         d = self._root()
-        write(d, "specs/x/s.md", GOOD_SPEC.replace("## Verification\ntest\n", ""))
+        write(d, "specs/x/s.md", GOOD_SPEC.replace(
+            "## Verification\nSee `tests/test_thing.py::test_it`.\n", ""))
         errors, _ = bv.validate(d)
         self.assertTrue(any("Verification" in e for e in errors))
 
@@ -116,6 +118,68 @@ class TestValidate(unittest.TestCase):
         write(d, "specs/x/s.md", GOOD_SPEC.replace("owner: me\n", ""))
         errors, _ = bv.validate(d)
         self.assertTrue(any("missing required key 'owner'" in e for e in errors))
+
+
+class TestTraceability(unittest.TestCase):
+    def _root(self):
+        d = Path(tempfile.mkdtemp())
+        write(d, "constitution.md", "# c")
+        return d
+
+    def test_missing_test_reference_fails(self):
+        d = self._root()
+        spec = GOOD_SPEC.replace("See `tests/test_thing.py::test_it`.", "manual review only")
+        write(d, "specs/x/s.md", spec)
+        errors, _ = bv.validate(d)
+        self.assertTrue(any("no test reference" in e for e in errors))
+
+    def test_broken_test_file_fails(self):
+        d = self._root()
+        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "tests/missing.py::test_x")
+        write(d, "specs/x/s.md", spec)
+        errors, _ = bv.validate(d)
+        self.assertTrue(any("does not" in e and "exist" in e for e in errors))
+
+    def test_missing_test_function_fails(self):
+        d = self._root()
+        write(d, "tests/test_thing.py", "def test_other():\n    pass\n")
+        write(d, "specs/x/s.md", GOOD_SPEC)  # references ::test_it which is absent
+        errors, _ = bv.validate(d)
+        self.assertTrue(any("not found in" in e for e in errors))
+
+    def test_ai_workflow_exempt(self):
+        d = self._root()
+        spec = GOOD_SPEC.replace("type: schema", "type: ai-workflow").replace(
+            "id: schema-thing", "id: ai-workflow-thing"
+        ).replace("See `tests/test_thing.py::test_it`.", "reviewer confirms steps")
+        write(d, "specs/x/s.md", spec)
+        errors, _ = bv.validate(d)
+        self.assertEqual(errors, [])
+
+    def test_verification_manual_exempt(self):
+        d = self._root()
+        spec = GOOD_SPEC.replace("owner: me", "owner: me\nverification: manual").replace(
+            "See `tests/test_thing.py::test_it`.", "manual check"
+        )
+        write(d, "specs/x/s.md", spec)
+        errors, _ = bv.validate(d)
+        self.assertEqual(errors, [])
+
+    def test_flag_disables_gate(self):
+        d = self._root()
+        spec = GOOD_SPEC.replace("See `tests/test_thing.py::test_it`.", "manual review only")
+        write(d, "specs/x/s.md", spec)
+        errors, _ = bv.validate(d, traceability=False)
+        self.assertEqual(errors, [])
+
+    def test_draft_spec_not_gated(self):
+        d = self._root()
+        spec = GOOD_SPEC.replace("status: approved", "status: draft").replace(
+            "See `tests/test_thing.py::test_it`.", "tbd"
+        )
+        write(d, "specs/x/s.md", spec)
+        errors, _ = bv.validate(d)
+        self.assertEqual(errors, [])
 
 
 class TestShippedExample(unittest.TestCase):

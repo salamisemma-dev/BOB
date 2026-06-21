@@ -68,3 +68,27 @@ geadresseerd: formaat, handhaving (CI), voorbeeld, sub-agent-docs, retrofit-tool
 governance en security zijn er en getest. Resterend gat (metrics) is expliciet benoemd
 i.p.v. weggepoetst.
 
+---
+
+## Ronde 3 — anti-vibe handhaving (gedrag afdwingen, niet alleen documenteren)
+
+Kritiek: specs konden "mooi bestaan" zonder hard aan tests/runtime gekoppeld te zijn.
+Elk PvA-punt uit die review met de geleverde fix:
+
+| Punt | Nadeel/risico | Fix | Geleverd in |
+|------|---------------|-----|-------------|
+| Validator | checkt structuur, niet of code semantisch klopt | **Spec-to-test traceability gate**: elke approved (niet-ai-workflow) spec moet in Verification een bestaande test noemen; CI faalt anders | `bob_validate.py` (traceability), 7 nieuwe tests |
+| CI gate | kon groen zijn terwijl implementatie functioneel afwijkt | traceability + **golden/runtime checks**: schema-specs gevalideerd tegen sample data | `bob_runtime_check.py`, `examples/todo-api/golden/` |
+| `bob_analyze.py` | draft specs lijken waarheid | stubs zijn `status: draft` + TODO-markers; approval verplicht; draft wordt niet door traceability/ready-gate geaccepteerd | bestaand gedrag + gate |
+| Subagents | drift bij te brede taak | regel: agent werkt alleen vanuit **spec-id + acceptatiecriteria**, één slice per agent | SKILL.md Phase 3 |
+| Constitution | bureaucratie | mini-constitution volstaat; uitbreiden alleen bij complexiteit | `templates/`, ADOPTION |
+| Memory/DOX | ruis | policy: alleen besluiten/risico's/specpaden/verificatie | `docs/ADOPTION.md` |
+| Token benchmark | approx ≠ echte kosten | gelabeld als footprint, niet ROI | `docs/BENCHMARK.md` |
+| "100% goed" | bestaat niet | falen vroeg zichtbaar: gates + fail-fast + ready-check | `bob_ready.py`, CI |
+| Adoption | wanneer is project BOB-ready? | 6-punts **adoption gate** + fail-fast anti-vibe modus | `bob_ready.py`, `docs/ADOPTION.md`, SKILL.md |
+
+### Open (bewust, volgorde per advies)
+- **Pilot op echte rommelige repo** — kan niet op de schone demo; vereist dat je BOB op
+  een bestaande repo richt. Tooling staat klaar (`bob_analyze` → fill/approve →
+  validator+runtime in CI → `bob_ready` groen).
+- **ROI-vergelijking met/zonder BOB** — pas ná de pilot (advies gevolgd).

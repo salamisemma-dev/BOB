@@ -103,7 +103,11 @@ projects and the `examples/` demo.
 - Other top-level paths (no child doc needed yet):
   - `.claude-plugin/` — plugin + marketplace manifests (JSON; keep valid).
   - `skills/bob/` — the skill itself; SKILL.md is the workflow contract, `references/` the deep docs.
-  - `templates/` — copy-paste spec + constitution templates.
+  - `templates/` — copy-paste spec, constitution, and downstream CI templates.
   - `docs/` — SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, TUTORIAL, TROUBLESHOOTING, BENCHMARK, PVA.
   - `.github/workflows/` — CI that runs the verification above.
   - `commands/` — the `/bob` slash command.
+
+
+
+

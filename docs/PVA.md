@@ -28,7 +28,7 @@ handhaving, echte voorbeelden, meetbare discipline.
 | # | Nadeel (review) | Fix | Geleverd in |
 |---|-----------------|-----|-------------|
 | N1 | **Geen concreet specformaat** | Canoniek formaat gedefinieerd: Markdown + YAML-frontmatter subset; Contract-sectie bevat het formele artefact (JSON Schema/DDL/Gherkin) per type. Templates copy-paste klaar. | `docs/SPEC-FORMAT.md`, `templates/` |
-| N2 | **Geen CI/CD** | Werkende validator + GitHub Actions die de build rood maakt bij drift; herbruikbaar CI-template voor eigen repos. | `scripts/bob_validate.py`, `.github/workflows/bob-validate.yml`, `…-template.yml` |
+| N2 | **Geen CI/CD** | Werkende validator + GitHub Actions die de build rood maakt bij drift; herbruikbaar CI-template voor eigen repos. | `scripts/bob_validate.py`, `.github/workflows/bob-validate.yml`, `templates/github-actions/bob-validate.yml` |
 | N3 | **Sub-agents onderspecificeerd** | Rollen, input/output-contract, failure modes, en hoe te vervangen gedocumenteerd. | `docs/SUB-AGENTS.md` |
 | N4 | **Geen migratiepad bestaande projecten** | `bob analyze` scant code en genereert draft-constitution + spec-stubs; retrofit-track met characterization-tests. | `scripts/bob_analyze.py`, `skills/bob/references/retrofit-existing.md` |
 | N5 | **Geen metrics/succescriteria** | Deels gesloten: benchmark-harness levert herhaalbare kwaliteits- + footprint-metingen (validator + tests + tokentelling, `--json`, CI-gate). Nog open: with/zonder-BOB ROI-vergelijking (aparte harness, roadmap). | `scripts/bob_benchmark.py`, `docs/BENCHMARK.md`, CI |
@@ -67,3 +67,4 @@ De review's kernverwijt — "vision met skeleton, mist de operationele 80%" — 
 geadresseerd: formaat, handhaving (CI), voorbeeld, sub-agent-docs, retrofit-tooling,
 governance en security zijn er en getest. Resterend gat (metrics) is expliciet benoemd
 i.p.v. weggepoetst.
+

@@ -184,7 +184,7 @@ Specs are meant to be enforced automatically, not by goodwill. When the project 
 (or wants) CI: wire a job that validates every spec and fails the build on drift
 between spec and code — schema mismatch, missing validation rule, constitution
 violation. Generate as much implementation as possible from the specs. Ship
-`scripts/bob_validate.py` + `.github/workflows/bob-validate-template.yml` into the
+`scripts/bob_validate.py` + `templates/github-actions/bob-validate.yml` into the
 project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 
 ---
@@ -230,3 +230,4 @@ Calls (via `Skill`): `context-memory-bank`, `dox`, optionally
 `Agent`): `coder`, `general-purpose`, `tester`, `superpowers:code-reviewer`,
 `reviewer`, `Plan`. All degrade gracefully — if one isn't present, do that phase
 inline and continue.
+

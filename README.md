@@ -108,3 +108,4 @@ Bob calls these if present, and degrades gracefully if not:
 - `superpowers` skills/agents — brainstorming, writing-plans, code-reviewer.
 
 To get the full experience on another machine, install those alongside Bob.
+

@@ -30,7 +30,7 @@ Set `status: approved` only when a section is real. Validator stays red until th
 required sections are filled — that's the point.
 
 ## 3. Wire CI (3 min)
-Copy `.github/workflows/bob-validate-template.yml` into your repo, vendor
+Copy `templates/github-actions/bob-validate.yml` into your repo as `.github/workflows/bob-validate.yml`, vendor
 `scripts/bob_validate.py`. Now spec drift fails the build.
 
 ## 4. Use the full workflow (10 min)
@@ -47,3 +47,4 @@ python scripts/bob_analyze.py <project> --write   # draft constitution + spec st
 ```
 Then fill the TODOs, add characterization tests, approve specs. Full track:
 [`../skills/bob/references/retrofit-existing.md`](../skills/bob/references/retrofit-existing.md).
+

@@ -16,11 +16,18 @@ owned by `../docs/SPEC-FORMAT.md`.
 - `bob_analyze.py` — retrofit scaffolder; dry-run by default, `--write` to create draft
   files; never overwrites an existing `constitution.md`; only writes under
   `constitution.md` and `specs/_drafts/`.
-- Both: Python 3.8+, standard library only. No third-party imports.
+- `bob_benchmark.py` — quality + footprint baseline; runs validator + tests + token
+  count, writes a Markdown report, exit 0 only if both pass. `--json` for CI. tiktoken
+  optional (exact tokens), stdlib heuristic otherwise. Tests in
+  `../tests/test_bob_benchmark.py`; doc + PvA in `../docs/BENCHMARK.md`.
+- All three: Python 3.8+, standard library only. No required third-party imports
+  (tiktoken is an optional enhancement).
 
 ## Work Guidance
 Any change to validation rules requires a matching test and a doc update in the same
 change. Keep messages actionable (say how to fix).
 
 ## Verification
-`python -m unittest tests.test_bob_validate -v` from the repo root (12 tests).
+From the repo root:
+- `python -m unittest tests.test_bob_validate -v` (12 tests)
+- `python -m unittest tests.test_bob_benchmark -v` (7 tests)

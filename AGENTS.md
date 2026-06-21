@@ -91,8 +91,10 @@ projects and the `examples/` demo.
 ## Verification
 
 - `python -m unittest tests.test_bob_validate -v` (validator: 12 tests)
+- `python -m unittest tests.test_bob_benchmark -v` (benchmark: 7 tests)
 - `python -m unittest discover -s examples/todo-api/tests -v` (demo: 9 tests)
 - `python scripts/bob_validate.py examples/todo-api` → must print OK
+- `python scripts/bob_benchmark.py --json` → exit 0, validator+tests pass
 
 ## Child DOX Index
 
@@ -102,6 +104,6 @@ projects and the `examples/` demo.
   - `.claude-plugin/` — plugin + marketplace manifests (JSON; keep valid).
   - `skills/bob/` — the skill itself; SKILL.md is the workflow contract, `references/` the deep docs.
   - `templates/` — copy-paste spec + constitution templates.
-  - `docs/` — SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, TUTORIAL, TROUBLESHOOTING, PVA.
+  - `docs/` — SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, TUTORIAL, TROUBLESHOOTING, BENCHMARK, PVA.
   - `.github/workflows/` — CI that runs the verification above.
   - `commands/` — the `/bob` slash command.

@@ -46,14 +46,19 @@ BOB ships the executable backbone the workflow promises:
   conforming code, 9 spec-traced tests, validates clean.
 - **Retrofit tooling** — `python scripts/bob_analyze.py <project> --write` drafts a
   constitution + spec stubs from existing code.
+- **Benchmark harness** — `python scripts/bob_benchmark.py` runs validator + tests +
+  token-footprint and writes a report; exit 0 only if green. stdlib-only (exact tokens
+  if `tiktoken` is installed). Doc + PvA: [`docs/BENCHMARK.md`](docs/BENCHMARK.md).
 - **Honest trade-offs** — [`docs/PVA.md`](docs/PVA.md): every review criticism with the
-  fix that shipped, and the one gap (metrics) left open on purpose.
+  fix that shipped, and the one gap (with/without-BOB ROI) left open on purpose.
 
 Quick verify:
 ```
-python -m unittest tests.test_bob_validate -v
-python -m unittest discover -s examples/todo-api/tests -v
+python -m unittest tests.test_bob_validate -v        # validator: 12
+python -m unittest tests.test_bob_benchmark -v       # benchmark: 7
+python -m unittest discover -s examples/todo-api/tests -v   # demo: 9
 python scripts/bob_validate.py examples/todo-api
+python scripts/bob_benchmark.py --json
 ```
 
 ## Install

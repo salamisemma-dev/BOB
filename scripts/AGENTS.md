@@ -20,7 +20,9 @@ owned by `../docs/SPEC-FORMAT.md`.
   in `../tests/test_bob_validate.py`.
 - `bob_runtime_check.py` — golden-file checks for `schema` specs: extracts the ```json
   schema from Contract, validates `golden/<spec-id>/valid|invalid/*.json` with a stdlib
-  JSON-Schema subset. Exit 1 if a valid sample fails or an invalid one passes. Tests:
+  JSON-Schema subset. Exit 1 if a valid sample fails or an invalid one passes. A schema
+  spec whose contract is SQL/DDL (not JSON) can set frontmatter `runtime: manual` to opt
+  out cleanly (no false "no json block" warning). Tests:
   `../tests/test_bob_runtime_check.py`.
 - `bob_ready.py` — adoption / fail-fast gate; composes validator + runtime check + file
   presence into a 6-point readiness checklist. Exit 0 only if all pass. Recognizes

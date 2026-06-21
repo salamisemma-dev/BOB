@@ -1,6 +1,7 @@
 """Tests for scripts/bob_runtime_check.py — stdlib only."""
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -57,6 +58,41 @@ class TestExtractSchema(unittest.TestCase):
 
     def test_no_block(self):
         self.assertIsNone(rc.extract_schema("no json here"))
+
+
+SQL_SPEC = """---
+id: schema-core-db
+type: schema
+version: 1.0
+status: approved
+owner: me
+runtime: manual
+---
+
+## Contract
+SQL/DDL contract — see supabase/migrations. No JSON Schema here on purpose.
+"""
+
+NO_JSON_SPEC = SQL_SPEC.replace("runtime: manual\n", "")
+
+
+class TestRuntimeManualOptOut(unittest.TestCase):
+    def _write(self, text):
+        d = Path(tempfile.mkdtemp())
+        p = d / "specs" / "schema" / "s.md"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text, encoding="utf-8")
+        return d
+
+    def test_manual_skips_without_warning(self):
+        errors, warnings = rc.run(self._write(SQL_SPEC))
+        self.assertEqual(errors, [])
+        self.assertFalse(any("no ```json" in w for w in warnings))
+
+    def test_without_optout_warns(self):
+        errors, warnings = rc.run(self._write(NO_JSON_SPEC))
+        self.assertEqual(errors, [])
+        self.assertTrue(any("no ```json" in w for w in warnings))
 
 
 class TestShippedDemo(unittest.TestCase):

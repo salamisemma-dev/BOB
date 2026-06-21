@@ -124,6 +124,11 @@ def run(root: Path):
         return errors, warnings
 
     for rel, sid, text in schema_specs:
+        # SQL/DDL or otherwise non-JSON contracts can opt out of golden checks with
+        # frontmatter `runtime: manual` — their contract isn't a JSON Schema, so a
+        # missing ```json block is intentional, not a gap.
+        if (_frontmatter_field(text, "runtime") or "").lower() == "manual":
+            continue
         schema = extract_schema(text)
         if schema is None:
             warnings.append(f"{rel}: no ```json schema block in Contract — can't runtime-check.")

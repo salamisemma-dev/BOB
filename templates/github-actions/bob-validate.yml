@@ -1,28 +1,30 @@
 # Copy this into YOUR project's .github/workflows/ to enforce its BOB spec layer.
-# Rename to bob-validate.yml. Assumes scripts/bob_validate.py is vendored into your
-# repo (copy it from the BOB plugin) or installed on PATH.
+# Rename to bob-validate.yml. Assumes scripts/bob_*.py are vendored into your repo.
 name: bob-validate
 
 on: [push, pull_request]
 
 jobs:
   validate:
+    name: bob-validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Validate spec layer (structure + spec-to-test gate)
-        run: python scripts/bob_validate.py .
+      # For Node/TS projects, install dependencies before bob_ready runs tests:
+      # - uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 20
+      #     cache: npm
+      # - run: npm ci
+      - name: Validate spec layer in strict mode
+        run: python scripts/bob_validate.py --strict .
       - name: Runtime/golden checks
         run: python scripts/bob_runtime_check.py .
-      - name: Adoption gate + run the test suite (READY means specs valid AND tests green)
-        run: python scripts/bob_ready.py . --run-tests
-        # For Node/TS projects, ensure deps are installed first:
-        #   - uses: actions/setup-node@v4
-        #   - run: npm ci
-        # bob_ready --run-tests auto-detects `npm test` from package.json.
+      - name: Adoption gate including tests
+        run: python scripts/bob_ready.py .
 
 # Make this workflow a REQUIRED status check on your default branch (branch
-# protection) so a red gate blocks merge — that's what makes BOB enforcing, not advisory.
+# protection) so a red gate blocks merge. Required check context: bob-validate.

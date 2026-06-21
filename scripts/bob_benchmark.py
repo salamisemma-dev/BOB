@@ -2,7 +2,7 @@
 """BOB Benchmark Harness — measure quality and footprint of a spec-driven project.
 
 What it measures:
-- Validator: does the spec layer pass `bob_validate.py`? (spec<->format integrity)
+- Validator: does the spec layer pass `bob_validate.py --strict`? (spec<->format + traceability integrity)
 - Tests: does the project's unittest suite pass? how long? how many passed/failed?
 - Footprint: token count of specs + code as a proxy for maintenance load.
 
@@ -53,7 +53,7 @@ def run_cmd(cmd: List[str], cwd: Optional[Path] = None) -> Tuple[int, str, str]:
 
 def measure_validator(demo_path: Path) -> Dict:
     start = time.perf_counter()
-    rc, out, err = run_cmd([sys.executable, str(VALIDATOR), str(demo_path)])
+    rc, out, err = run_cmd([sys.executable, str(VALIDATOR), "--strict", str(demo_path)])
     return {
         "success": rc == 0,
         "returncode": rc,
@@ -219,3 +219,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

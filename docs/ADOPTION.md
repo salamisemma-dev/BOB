@@ -1,23 +1,40 @@
 # Adoption gate & fail-fast anti-vibe mode
 
-BOB only prevents vibe-coding if it *blocks* work on an un-disciplined project instead
+BOB only prevents vibe-coding if it *blocks* work on an undisciplined project instead
 of politely suggesting specs. This is the enforceable gate.
 
 ## When is a project BOB-ready?
 
-A project is BOB-ready when all six hold (checked by `scripts/bob_ready.py`):
+A project is BOB-ready when all seven hold (checked by `scripts/bob_ready.py`):
 
 1. `constitution.md` present — the supreme contract.
 2. At least one **approved** spec.
-3. Validator passes — structure **and** spec-to-test traceability.
+3. Strict validator passes — structure, spec-to-test traceability, and assertion evidence.
 4. Runtime/golden checks pass — schema specs verified against sample data.
-5. `tests/` directory present.
-6. `AGENTS.md` present — DOX context.
+5. A test suite is present: `tests/`, `src/__tests__/`, or common `*.test` / `*.spec` files.
+6. The test command passes. `bob_ready.py` runs tests by default.
+7. `AGENTS.md` present — DOX context.
 
-```
-python scripts/bob_ready.py <project>     # exit 0 only if all six pass
+```bash
+python scripts/bob_validate.py --strict <project>
+python scripts/bob_runtime_check.py <project>
+python scripts/bob_ready.py <project>     # strict + tests by default
 python scripts/bob_ready.py <project> --json
 ```
+
+`--no-run-tests` on `bob_ready.py` is diagnostic only. Do not use it in CI.
+`--no-traceability` on `bob_validate.py` is forbidden with `--strict`.
+
+## Branch protection
+
+CI is not enforcement until branch protection requires the green check. For GitHub:
+
+```bash
+bash templates/enable-branch-protection.sh owner/repo main bob-validate
+```
+
+This requires GitHub CLI auth (`gh auth login`) or an equivalent authenticated REST call.
+Without branch protection, a red BOB workflow is only advice.
 
 ## Fail-fast anti-vibe rule
 
@@ -26,8 +43,9 @@ code until the chain exists for that work:
 
 - **No spec** for the thing being built → stop, write the spec (Phase 1.5).
 - **Spec not approved** → stop, get approval.
-- **Validator/traceability failing** → stop, fix the spec layer.
+- **Strict validator/traceability failing** → stop, fix the spec layer.
 - **No test plan** (the spec's Verification names no test) → stop, define it.
+- **Test command fails** → stop, fix the implementation or the test contract.
 
 This is not bureaucracy for a one-line fix — run it *light* for tiny tasks (a mini-spec
 + one test reference). But the gate is never skipped: a spec that isn't tied to a test

@@ -1,8 +1,4 @@
-"""Tests for scripts/bob_validate.py — dependency-free, runnable with unittest.
-
-Covers: a valid repo passes; each violation class is caught. Also validates the
-shipped examples/todo-api as an integration check.
-"""
+"""Tests for scripts/bob_validate.py — dependency-free, runnable with unittest."""
 import os
 import sys
 import tempfile
@@ -68,35 +64,35 @@ class TestValidate(unittest.TestCase):
         write(d, "tests/test_thing.py", "def test_it():\n    assert True\n")
         return d
 
-
     def test_specs_agents_md_is_ignored(self):
         d = self._root()
         write(d, "specs/AGENTS.md", "# local contract\n")
         write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
         errors, _ = bv.validate(d)
         self.assertEqual(errors, [])
+
     def test_valid_repo_passes(self):
         d = self._root()
         write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
-        errors, _ = bv.validate(d)
+        errors, _ = bv.validate(d, strict=True)
         self.assertEqual(errors, [])
-
 
     def test_typescript_test_reference_passes(self):
         d = self._root()
-        write(d, "src/__tests__/thing.test.ts", "import { test } from 'vitest';\ntest('handlesThing', () => {});\n")
+        write(d, "src/__tests__/thing.test.ts", "import { test, expect } from 'vitest';\ntest('handlesThing', () => { expect(true).toBe(true); });\n")
         spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "src/__tests__/thing.test.ts::handlesThing")
         write(d, "specs/schema/schema-thing.md", spec)
-        errors, _ = bv.validate(d)
+        errors, _ = bv.validate(d, strict=True)
         self.assertEqual(errors, [])
 
     def test_typescript_missing_test_name_fails(self):
         d = self._root()
-        write(d, "src/__tests__/thing.test.ts", "import { test } from 'vitest';\ntest('otherThing', () => {});\n")
+        write(d, "src/__tests__/thing.test.ts", "import { test, expect } from 'vitest';\ntest('otherThing', () => { expect(true).toBe(true); });\n")
         spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "src/__tests__/thing.test.ts::handlesThing")
         write(d, "specs/schema/schema-thing.md", spec)
         errors, _ = bv.validate(d)
         self.assertTrue(any("handlesThing" in e for e in errors))
+
     def test_missing_constitution(self):
         d = Path(tempfile.mkdtemp())
         write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
@@ -111,15 +107,13 @@ class TestValidate(unittest.TestCase):
 
     def test_missing_section(self):
         d = self._root()
-        write(d, "specs/x/s.md", GOOD_SPEC.replace(
-            "## Verification\nSee `tests/test_thing.py::test_it`.\n", ""))
+        write(d, "specs/x/s.md", GOOD_SPEC.replace("## Verification\nSee `tests/test_thing.py::test_it`.\n", ""))
         errors, _ = bv.validate(d)
         self.assertTrue(any("Verification" in e for e in errors))
 
     def test_empty_section_when_approved(self):
         d = self._root()
-        broken = GOOD_SPEC.replace("## Intent\nwhy", "## Intent\n")
-        write(d, "specs/x/s.md", broken)
+        write(d, "specs/x/s.md", GOOD_SPEC.replace("## Intent\nwhy", "## Intent\n"))
         errors, _ = bv.validate(d)
         self.assertTrue(any("empty" in e for e in errors))
 
@@ -165,71 +159,67 @@ class TestTraceability(unittest.TestCase):
 
     def test_missing_test_function_fails(self):
         d = self._root()
-        write(d, "tests/test_thing.py", "def test_other():\n    pass\n")
-        write(d, "specs/x/s.md", GOOD_SPEC)  # references ::test_it which is absent
+        write(d, "tests/test_thing.py", "def test_other():\n    assert True\n")
+        write(d, "specs/x/s.md", GOOD_SPEC)
         errors, _ = bv.validate(d)
         self.assertTrue(any("not found in" in e for e in errors))
 
     def test_ai_workflow_exempt(self):
         d = self._root()
-        spec = GOOD_SPEC.replace("type: schema", "type: ai-workflow").replace(
-            "id: schema-thing", "id: ai-workflow-thing"
-        ).replace("See `tests/test_thing.py::test_it`.", "reviewer confirms steps")
+        spec = GOOD_SPEC.replace("type: schema", "type: ai-workflow").replace("id: schema-thing", "id: ai-workflow-thing").replace("See `tests/test_thing.py::test_it`.", "reviewer confirms steps")
         write(d, "specs/x/s.md", spec)
-        errors, _ = bv.validate(d)
+        errors, _ = bv.validate(d, strict=True)
         self.assertEqual(errors, [])
 
     def test_verification_manual_exempt(self):
         d = self._root()
-        spec = GOOD_SPEC.replace("owner: me", "owner: me\nverification: manual").replace(
-            "See `tests/test_thing.py::test_it`.", "manual check"
-        )
+        spec = GOOD_SPEC.replace("owner: me", "owner: me\nverification: manual").replace("See `tests/test_thing.py::test_it`.", "manual check")
         write(d, "specs/x/s.md", spec)
-        errors, _ = bv.validate(d)
+        errors, _ = bv.validate(d, strict=True)
         self.assertEqual(errors, [])
 
-    def test_flag_disables_gate(self):
+    def test_flag_disables_gate_in_non_strict_mode(self):
         d = self._root()
         spec = GOOD_SPEC.replace("See `tests/test_thing.py::test_it`.", "manual review only")
         write(d, "specs/x/s.md", spec)
         errors, _ = bv.validate(d, traceability=False)
         self.assertEqual(errors, [])
 
+    def test_strict_rejects_no_traceability_escape(self):
+        d = self._root()
+        write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
+        errors, _ = bv.validate(d, traceability=False, strict=True)
+        self.assertTrue(any("--strict cannot be combined" in e for e in errors))
+
+    def test_strict_fails_assertionless_test_file(self):
+        d = self._root()
+        write(d, "tests/test_thing.py", "def test_it():\n    pass\n")
+        write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
+        errors, warnings = bv.validate(d, strict=True)
+        self.assertTrue(any("no obvious" in e for e in errors))
+        self.assertEqual(warnings, [])
+
+    def test_non_strict_warns_on_assertionless_test_file(self):
+        d = self._root()
+        write(d, "tests/test_thing.py", "def test_it():\n    pass\n")
+        write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
+        errors, warnings = bv.validate(d)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("no obvious" in w for w in warnings))
+
     def test_draft_spec_not_gated(self):
         d = self._root()
-        spec = GOOD_SPEC.replace("status: approved", "status: draft").replace(
-            "See `tests/test_thing.py::test_it`.", "tbd"
-        )
+        spec = GOOD_SPEC.replace("status: approved", "status: draft").replace("See `tests/test_thing.py::test_it`.", "tbd")
         write(d, "specs/x/s.md", spec)
-        errors, _ = bv.validate(d)
+        errors, _ = bv.validate(d, strict=True)
         self.assertEqual(errors, [])
-
-    def test_assertionless_test_warns_not_errors(self):
-        d = self._root()
-        write(d, "tests/empty.py", "def test_nothing():\n    pass\n")
-        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "tests/empty.py::test_nothing")
-        write(d, "specs/x/s.md", spec)
-        errors, warnings = bv.validate(d)
-        self.assertEqual(errors, [])  # not blocked (assertion styles vary)
-        self.assertTrue(any("no recognizable assertions" in w for w in warnings))
-
-    def test_real_assertions_no_warning(self):
-        d = self._root()
-        write(d, "tests/real.py", "def test_x():\n    assert 1 == 1\n")
-        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "tests/real.py::test_x")
-        write(d, "specs/x/s.md", spec)
-        errors, warnings = bv.validate(d)
-        self.assertEqual(errors, [])
-        self.assertFalse(any("no recognizable assertions" in w for w in warnings))
 
 
 class TestShippedExample(unittest.TestCase):
     def test_todo_api_example_is_valid(self):
-        errors, _ = bv.validate(REPO_ROOT / "examples" / "todo-api")
+        errors, _ = bv.validate(REPO_ROOT / "examples" / "todo-api", strict=True)
         self.assertEqual(errors, [], f"shipped example invalid: {errors}")
 
 
 if __name__ == "__main__":
     unittest.main()
-
-

@@ -1,21 +1,29 @@
 #!/usr/bin/env bash
 # Make the BOB gate ENFORCING (not advisory) by requiring its CI check before merge.
-# This is the one step BOB can't do for you in code — it's a GitHub admin setting.
-#
-# Prereqs: gh CLI installed and authenticated (`gh auth login`) with admin on the repo.
-# Usage:   ./enable-branch-protection.sh <owner/repo> <branch> <required-check-name>
-# Example: ./enable-branch-protection.sh salamisemma-dev/Salamis main bob-governance
+# Requires GitHub CLI auth with repository administration permission.
 set -euo pipefail
 
-REPO="${1:?owner/repo}"; BRANCH="${2:-main}"; CHECK="${3:-bob-governance}"
+repo="${1:?usage: enable-branch-protection.sh owner/repo [branch] [required-check]}"
+branch="${2:-main}"
+check="${3:-bob-validate}"
 
-gh api -X PUT "repos/${REPO}/branches/${BRANCH}/protection" \
-  -H "Accept: application/vnd.github+json" \
-  -f "required_status_checks[strict]=true" \
-  -f "required_status_checks[contexts][]=${CHECK}" \
-  -F "enforce_admins=true" \
-  -F "required_pull_request_reviews[required_approving_review_count]=1" \
-  -F "restrictions=null"
+if ! command -v gh >/dev/null 2>&1; then
+  echo "ERROR: gh CLI is required. Install GitHub CLI and run: gh auth login" >&2
+  exit 1
+fi
 
-echo "Branch protection on ${REPO}@${BRANCH}: '${CHECK}' is now a required check."
-echo "A red BOB gate now blocks merge. That closes the last anti-vibe gap."
+gh api --method PUT "repos/${repo}/branches/${branch}/protection" \
+  --field required_status_checks.strict=true \
+  --raw-field "required_status_checks.contexts[]=${check}" \
+  --field enforce_admins=true \
+  --field required_pull_request_reviews.required_approving_review_count=1 \
+  --field required_pull_request_reviews.dismiss_stale_reviews=true \
+  --field required_pull_request_reviews.require_code_owner_reviews=false \
+  --field restrictions=null \
+  --field required_linear_history=false \
+  --field allow_force_pushes=false \
+  --field allow_deletions=false \
+  --field required_conversation_resolution=true
+
+echo "Enabled branch protection for ${repo}:${branch}; required check: ${check}"
+echo "A red BOB gate now blocks merge. That closes the last code-level anti-vibe gap."

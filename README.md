@@ -24,7 +24,7 @@ bob-plugin/
 │   └── bob_analyze.py      # retrofit scaffolder for existing projects
 ├── templates/              # constitution + spec templates (copy-paste)
 ├── examples/todo-api/      # complete, validating demo: specs + code + tests
-├── tests/                  # validator unit tests (12)
+├── tests/                  # tooling unit tests (50)
 ├── docs/                   # SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, TUTORIAL, etc.
 ├── .github/workflows/      # CI: spec validation + tests
 └── AGENTS.md               # DOX context tree
@@ -37,9 +37,9 @@ BOB ships the executable backbone the workflow promises:
 - **Canonical spec format** — [`docs/SPEC-FORMAT.md`](docs/SPEC-FORMAT.md) + copy-paste
   [`templates/`](templates/). Markdown + YAML frontmatter; the *Contract* section embeds
   the formal artifact per type (JSON Schema, DDL, rules).
-- **Validator** — `python scripts/bob_validate.py <project>` fails on missing
+- **Validator** — `python scripts/bob_validate.py --strict <project>` fails on missing
   constitution, bad spec type, empty approved sections, dangling `depends_on`, duplicate
-  ids. Tested (12 cases).
+  ids, missing traceability, and assertionless linked tests. Tested (50 tooling checks).
 - **CI** — [`.github/workflows/bob-validate.yml`](.github/workflows/bob-validate.yml)
   turns spec drift into a red build.
 - **Worked demo** — [`examples/todo-api/`](examples/todo-api/): all six spec types,
@@ -63,11 +63,11 @@ BOB ships the executable backbone the workflow promises:
 
 Quick verify:
 ```
-python -m unittest discover -s tests -v                     # tooling: 38
+python -m unittest discover -s tests -v                     # tooling: 50
 python -m unittest discover -s examples/todo-api/tests -v   # demo: 9
-python scripts/bob_validate.py examples/todo-api            # structure + traceability
+python scripts/bob_validate.py --strict examples/todo-api   # structure + traceability + assertion evidence
 python scripts/bob_runtime_check.py examples/todo-api       # golden data
-python scripts/bob_ready.py examples/todo-api               # READY 6/6
+python scripts/bob_ready.py examples/todo-api               # READY 7/7, runs tests
 python scripts/bob_benchmark.py --json
 ```
 
@@ -118,4 +118,5 @@ Bob calls these if present, and degrades gracefully if not:
 - `superpowers` skills/agents — brainstorming, writing-plans, code-reviewer.
 
 To get the full experience on another machine, install those alongside Bob.
+
 

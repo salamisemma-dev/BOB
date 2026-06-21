@@ -9,16 +9,14 @@ refuses to proceed on an un-specced project.
 Criteria:
   1. constitution.md present (the supreme contract)
   2. at least one APPROVED spec
-  3. validator passes (structure + spec-to-test traceability)
+  3. strict validator passes (structure + traceability + assertion evidence)
   4. runtime/golden checks pass (no errors)
   5. a test suite is present (tests/, src/__tests__, or common test/spec files)
-  6. AGENTS.md present (DOX context)
-
-With --run-tests, a 7th criterion runs the project's actual test suite and requires it
-to pass — so "READY" means specs valid AND tests green, not merely "a test file exists".
+  6. test command passes (default; use --no-run-tests only for diagnosis)
+  7. AGENTS.md present (DOX context)
 
 Usage:
-    python bob_ready.py [PROJECT_ROOT] [--json] [--run-tests]
+    python bob_ready.py [PROJECT_ROOT] [--json] [--no-run-tests]
 Exit 0 only if every criterion passes.
 """
 from __future__ import annotations
@@ -57,6 +55,8 @@ def _count_approved_specs(root: Path) -> int:
         return 0
     n = 0
     for f in specs.rglob("*.md"):
+        if f.name == "AGENTS.md":
+            continue
         text = f.read_text(encoding="utf-8", errors="replace")
         if re.search(r"^status:\s*approved\s*$", text, re.MULTILINE):
             n += 1
@@ -88,36 +88,50 @@ def _has_test_suite(root: Path):
 
 
 def _detect_test_command(root: Path):
-    """Pick how to run this project's tests. Returns (argv, label) or (None, reason)."""
-    pkg = root / "package.json"
-    if pkg.is_file():
+    """Return (cmd, label, shell) or (None, reason, False)."""
+    package_json = root / "package.json"
+    if package_json.is_file():
         try:
-            data = json.loads(pkg.read_text(encoding="utf-8", errors="replace"))
+            data = json.loads(package_json.read_text(encoding="utf-8", errors="replace"))
             if isinstance(data.get("scripts"), dict) and data["scripts"].get("test"):
-                return (["npm", "test", "--silent"], "npm test")
+                return "npm test --silent", "npm test", True
         except json.JSONDecodeError:
-            pass
+            if '"test"' in package_json.read_text(encoding="utf-8", errors="replace"):
+                return "npm test --silent", "npm test", True
     if (root / "tests").is_dir():
-        return ([sys.executable, "-m", "unittest", "discover", "-s", "tests"],
-                "python -m unittest discover -s tests")
+        return [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"], "python -m unittest discover -s tests -v", False
     if list(root.glob("test_*.py")):
-        return ([sys.executable, "-m", "unittest", "discover"], "python -m unittest")
-    return (None, "no runnable test command detected (package.json test script or tests/)")
+        return [sys.executable, "-m", "unittest", "discover", "-v"], "python -m unittest discover -v", False
+    return None, "no supported test command detected", False
 
 
 def _run_tests(root: Path):
-    cmd, label = _detect_test_command(root)
+    cmd, label, shell = _detect_test_command(root)
     if cmd is None:
         return False, label
     try:
-        proc = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True,
-                              shell=(cmd[0] == "npm"))
-    except OSError as e:
-        return False, f"{label}: could not run ({e})"
-    return proc.returncode == 0, f"{label}: {'passed' if proc.returncode == 0 else 'FAILED'}"
+        proc = subprocess.run(
+            cmd,
+            cwd=str(root),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=120,
+            shell=shell,
+        )
+    except FileNotFoundError as exc:
+        return False, f"{label}: not found ({exc})"
+    except OSError as exc:
+        return False, f"{label}: could not run ({exc})"
+    except subprocess.TimeoutExpired:
+        return False, f"{label} timed out after 120s"
+    if proc.returncode == 0:
+        return True, f"{label}: passed"
+    tail = "\n".join((proc.stdout or "").splitlines()[-8:])
+    return False, f"{label}: FAILED with exit {proc.returncode}: {tail}"
 
 
-def assess(root: Path, run_tests: bool = False):
+def assess(root: Path, run_tests: bool = True):
     """Return a list of (criterion, passed, detail)."""
     results = []
 
@@ -126,8 +140,8 @@ def assess(root: Path, run_tests: bool = False):
     approved = _count_approved_specs(root)
     results.append(("at least one approved spec", approved >= 1, f"{approved} found"))
 
-    v_errors, _ = bv.validate(root)
-    results.append(("validator passes (structure + traceability)", not v_errors,
+    v_errors, _ = bv.validate(root, strict=True)
+    results.append(("strict validator passes (structure + traceability)", not v_errors,
                     f"{len(v_errors)} error(s)"))
 
     r_errors, _ = rc.run(root)
@@ -136,11 +150,13 @@ def assess(root: Path, run_tests: bool = False):
     has_tests, test_detail = _has_test_suite(root)
     results.append(("test suite present", has_tests, test_detail))
 
-    results.append(("AGENTS.md present (DOX)", (root / "AGENTS.md").is_file(), ""))
-
     if run_tests:
-        passed, detail = _run_tests(root)
-        results.append(("test suite passes (--run-tests)", passed, detail))
+        tests_ok, tests_detail = _run_tests(root)
+        results.append(("test command passes", tests_ok, tests_detail))
+    else:
+        results.append(("test command passes", True, "skipped by --no-run-tests"))
+
+    results.append(("AGENTS.md present (DOX)", (root / "AGENTS.md").is_file(), ""))
 
     return results
 
@@ -150,16 +166,18 @@ def main(argv=None):
     ap.add_argument("root", nargs="?", default=".")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--run-tests", action="store_true",
-                    help="also run the project's test suite and require it to pass")
+                    help="deprecated no-op: tests run by default")
+    ap.add_argument("--no-run-tests", action="store_true",
+                    help="diagnostic escape hatch; CI should not use this")
     args = ap.parse_args(argv)
 
     root = Path(args.root).resolve()
-    results = assess(root, run_tests=args.run_tests)
+    results = assess(root, run_tests=not args.no_run_tests)
     ready = all(p for _, p, _ in results)
 
     if args.json:
         print(json.dumps({
-            "root": str(root), "ready": ready,
+            "root": str(root), "ready": ready, "run_tests": not args.no_run_tests,
             "criteria": [{"name": n, "passed": p, "detail": d} for n, p, d in results],
         }, indent=2))
     else:

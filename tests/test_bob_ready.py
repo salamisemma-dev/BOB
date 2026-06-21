@@ -26,18 +26,18 @@ class TestReady(unittest.TestCase):
 
     def test_empty_dir_not_ready(self):
         with tempfile.TemporaryDirectory() as d:
-            rc = br.main([str(d)])
+            rc = br.main([str(d), "--no-run-tests"])
             self.assertEqual(rc, 1)
 
     def test_assess_reports_each_criterion(self):
         with tempfile.TemporaryDirectory() as d:
-            results = br.assess(Path(d))
-            self.assertEqual(len(results), 6)
+            results = br.assess(Path(d), run_tests=False)
+            self.assertEqual(len(results), 7)
             by_name = {n: p for n, p, _ in results}
-            # File-presence + approved-spec criteria must be False on an empty dir.
             self.assertFalse(by_name["constitution.md present"])
             self.assertFalse(by_name["at least one approved spec"])
             self.assertFalse(by_name["test suite present"])
+            self.assertTrue(by_name["test command passes"])
             self.assertFalse(by_name["AGENTS.md present (DOX)"])
 
     def test_detects_vitest_style_src_tests(self):
@@ -63,34 +63,19 @@ class TestReady(unittest.TestCase):
             ok, _ = br._has_test_suite(root)
             self.assertFalse(ok)
 
-    def test_run_tests_adds_criterion_and_passes_on_green(self):
+    def test_run_tests_failure_blocks_readiness(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
-            write(root, "tests/test_ok.py",
-                  "import unittest\n"
-                  "class T(unittest.TestCase):\n"
-                  "    def test_ok(self):\n        self.assertTrue(True)\n")
-            results = br.assess(root, run_tests=True)
-            names = [n for n, _, _ in results]
-            self.assertIn("test suite passes (--run-tests)", names)
-            passed = {n: p for n, p, _ in results}["test suite passes (--run-tests)"]
-            self.assertTrue(passed)
+            write(root, "package.json", '{"scripts":{"test":"node missing-test-file.js"}}')
+            ok, detail = br._run_tests(root)
+            self.assertFalse(ok)
+            self.assertTrue("FAILED" in detail or "not found" in detail or "could not run" in detail)
 
-    def test_run_tests_fails_on_red_suite(self):
+    def test_no_supported_test_command_fails(self):
         with tempfile.TemporaryDirectory() as d:
-            root = Path(d)
-            write(root, "tests/test_bad.py",
-                  "import unittest\n"
-                  "class T(unittest.TestCase):\n"
-                  "    def test_bad(self):\n        self.fail('boom')\n")
-            passed, _ = br._run_tests(root)
-            self.assertFalse(passed)
-
-    def test_run_tests_no_command_detected(self):
-        with tempfile.TemporaryDirectory() as d:
-            passed, detail = br._run_tests(Path(d))
-            self.assertFalse(passed)
-            self.assertIn("no runnable test command", detail)
+            ok, detail = br._run_tests(Path(d))
+            self.assertFalse(ok)
+            self.assertIn("no supported test command", detail)
 
 
 if __name__ == "__main__":

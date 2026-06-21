@@ -56,7 +56,7 @@ phase — if one genuinely doesn't apply, say why, don't silently drop it.
 
 When the user says "build X" / "add Y", refuse to generate code until the chain exists
 for *that* work: an **approved spec** whose **Verification names a real test**, with the
-validator green. Missing any → stop and produce it first (Phase 1.5). Run it *light* for
+strict validator green. Missing any → stop and produce it first (Phase 1.5). Run it *light* for
 tiny tasks (mini-spec + one test ref) but never skip it — a spec untied to a test is how
 "looks valid, behaves wrong" slips in. On an existing project, `python scripts/bob_ready.py
 <root>` is the machine check; full criteria in `docs/ADOPTION.md`.
@@ -121,9 +121,7 @@ In short:
    assumptions, constraints, downstream dependencies, and intent behind choices.
 3. **Approval gate.** Get the user's OK on the spec before any code. No code without
    an approved spec; when something must change, change the spec first, then regenerate.
-4. **Validate.** Run `python scripts/bob_validate.py <project-root>` and
-   `python scripts/bob_ready.py <project-root>` — both must pass before code. These are
-   the executable checks (also run in CI), not a formality.
+4. **Validate.** Run `python scripts/bob_validate.py --strict <project-root>` and `python scripts/bob_ready.py <project-root>` — both must pass; `bob_ready` runs tests by default before code. These are the executable checks (also run in CI), not a formality.
 5. Commit the constitution + specs so they're version-controlled from the start.
 
 ---
@@ -192,7 +190,7 @@ that grew. (Some swarm agents may be unavailable in a given session — fall bac
 
 ## CI/CD integration
 
-Specs are meant to be enforced automatically, not by goodwill. When the project has
+Specs are meant to be enforced automatically, not by goodwill. CI must use strict mode and branch protection must require the `bob-validate` check. When the project has
 (or wants) CI: wire a job that validates every spec and fails the build on drift
 between spec and code — schema mismatch, missing validation rule, constitution
 violation. Generate as much implementation as possible from the specs. Ship
@@ -231,9 +229,9 @@ project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 - `references/sdd-pva.md` — plan van aanpak: pros, cons, and a fix for each con.
 
 ## Tooling (in the plugin repo)
-- `scripts/bob_validate.py` — spec validator + spec-to-test traceability gate; Phase 1.5 + CI.
+- `scripts/bob_validate.py` — strict spec validator + Python/JS/TS spec-to-test traceability gate; Phase 1.5 + CI.
 - `scripts/bob_runtime_check.py` — golden-file checks: schema specs verified vs sample data.
-- `scripts/bob_ready.py` — adoption / fail-fast gate; exit 0 only if a project is BOB-ready.
+- `scripts/bob_ready.py` — adoption / fail-fast gate; strict validation + tests; exit 0 only if a project is BOB-ready.
 - `scripts/bob_analyze.py` — retrofit scaffolder: drafts constitution + spec stubs from code.
 - `scripts/bob_benchmark.py` — quality + token-footprint baseline.
 - `templates/` — constitution + spec templates. `docs/SPEC-FORMAT.md`, `docs/ADOPTION.md`,

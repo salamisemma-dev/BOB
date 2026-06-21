@@ -52,3 +52,4 @@ JSON report: add `--json`.
 No code without an approved spec. Change the spec first, then regenerate code. CI
 (`.github/workflows/bob-validate.yml`) makes drift a red build. Worked example that
 passes: [`../examples/todo-api/`](../examples/todo-api/).
+

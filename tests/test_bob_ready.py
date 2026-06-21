@@ -13,6 +13,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEMO = REPO_ROOT / "examples" / "todo-api"
 
 
+def write(root: Path, rel: str, content: str = ""):
+    p = root / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content, encoding="utf-8")
+
+
 class TestReady(unittest.TestCase):
     def test_demo_is_ready(self):
         rc = br.main(["--json", str(DEMO)])
@@ -31,8 +37,31 @@ class TestReady(unittest.TestCase):
             # File-presence + approved-spec criteria must be False on an empty dir.
             self.assertFalse(by_name["constitution.md present"])
             self.assertFalse(by_name["at least one approved spec"])
-            self.assertFalse(by_name["tests/ directory present"])
+            self.assertFalse(by_name["test suite present"])
             self.assertFalse(by_name["AGENTS.md present (DOX)"])
+
+    def test_detects_vitest_style_src_tests(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "src" / "__tests__").mkdir(parents=True)
+            ok, detail = br._has_test_suite(root)
+            self.assertTrue(ok)
+            self.assertEqual(detail, "src/__tests__/")
+
+    def test_detects_common_test_file_patterns(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            write(root, "src/services/foo.spec.ts", "")
+            ok, detail = br._has_test_suite(root)
+            self.assertTrue(ok)
+            self.assertEqual(detail, "src/services/foo.spec.ts")
+
+    def test_ignores_dependency_test_files(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            write(root, "node_modules/pkg/foo.test.ts", "")
+            ok, _ = br._has_test_suite(root)
+            self.assertFalse(ok)
 
 
 if __name__ == "__main__":

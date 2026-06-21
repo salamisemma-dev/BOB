@@ -121,7 +121,7 @@ def validate(root: Path, traceability: bool = True):
         )
         return errors, warnings
 
-    spec_files = sorted(specs_dir.rglob("*.md"))
+    spec_files = sorted(f for f in specs_dir.rglob("*.md") if f.name != "AGENTS.md")
     ids = {}
     records = []
 
@@ -200,12 +200,16 @@ def validate(root: Path, traceability: bool = True):
     return errors, warnings
 
 
-# Matches a test file path with an optional ::test_name (e.g. tests/test_x.py::test_y).
-_TEST_REF_RE = re.compile(r"([\w./\\-]+\.py)(?:::(\w+))?")
+# Matches a test file path with an optional ::test_name. Supports Python and
+# common JS/TS test runners, e.g. tests/test_x.py::test_y or
+# src/__tests__/thing.test.ts::handlesThing.
+_TEST_REF_RE = re.compile(
+    r"([\w./\\-]+\.(?:py|js|mjs|cjs|ts|tsx|jsx))(?:::(\w+))?"
+)
 
 
 def parse_test_refs(verification_text: str):
-    """Return [(path, test_name_or_None)] for every .py reference in the text."""
+    """Return [(path, test_name_or_None)] for Python/JS/TS test references."""
     return [(m.group(1).replace("\\", "/"), m.group(2)) for m in _TEST_REF_RE.finditer(verification_text)]
 
 
@@ -244,7 +248,7 @@ def check_traceability(root, records):
                 )
             elif name:
                 content = target.read_text(encoding="utf-8", errors="replace")
-                if f"def {name}" not in content:
+                if f"def {name}" not in content and name not in content:
                     errors.append(
                         f"{rel}: Verification references test '{name}' not found in "
                         f"'{path}'. Rename the reference or add the test."
@@ -280,3 +284,6 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+

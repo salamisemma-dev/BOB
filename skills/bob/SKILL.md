@@ -121,8 +121,9 @@ In short:
    assumptions, constraints, downstream dependencies, and intent behind choices.
 3. **Approval gate.** Get the user's OK on the spec before any code. No code without
    an approved spec; when something must change, change the spec first, then regenerate.
-4. **Validate.** Run `python scripts/bob_validate.py <project-root>` — it must pass
-   before code. This is the executable check (also runs in CI), not a formality.
+4. **Validate.** Run `python scripts/bob_validate.py <project-root>` and
+   `python scripts/bob_ready.py <project-root>` — both must pass before code. These are
+   the executable checks (also run in CI), not a formality.
 5. Commit the constitution + specs so they're version-controlled from the start.
 
 ---

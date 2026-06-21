@@ -68,12 +68,35 @@ class TestValidate(unittest.TestCase):
         write(d, "tests/test_thing.py", "def test_it():\n    pass\n")
         return d
 
+
+    def test_specs_agents_md_is_ignored(self):
+        d = self._root()
+        write(d, "specs/AGENTS.md", "# local contract\n")
+        write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
+        errors, _ = bv.validate(d)
+        self.assertEqual(errors, [])
     def test_valid_repo_passes(self):
         d = self._root()
         write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
         errors, _ = bv.validate(d)
         self.assertEqual(errors, [])
 
+
+    def test_typescript_test_reference_passes(self):
+        d = self._root()
+        write(d, "src/__tests__/thing.test.ts", "import { test } from 'vitest';\ntest('handlesThing', () => {});\n")
+        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "src/__tests__/thing.test.ts::handlesThing")
+        write(d, "specs/schema/schema-thing.md", spec)
+        errors, _ = bv.validate(d)
+        self.assertEqual(errors, [])
+
+    def test_typescript_missing_test_name_fails(self):
+        d = self._root()
+        write(d, "src/__tests__/thing.test.ts", "import { test } from 'vitest';\ntest('otherThing', () => {});\n")
+        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "src/__tests__/thing.test.ts::handlesThing")
+        write(d, "specs/schema/schema-thing.md", spec)
+        errors, _ = bv.validate(d)
+        self.assertTrue(any("handlesThing" in e for e in errors))
     def test_missing_constitution(self):
         d = Path(tempfile.mkdtemp())
         write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
@@ -190,3 +213,5 @@ class TestShippedExample(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+

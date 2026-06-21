@@ -19,10 +19,24 @@ Dependency-free; stdlib only.
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 SOURCE_EXT = {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".rb", ".sql"}
-SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", ".github"}
+SKIP_DIRS = {
+    ".git",
+    ".github",
+    ".claude",
+    ".vercel",
+    "_archive",
+    "node_modules",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+    "coverage",
+}
 
 CONSTITUTION_STUB = """# Project Constitution — {name} (DRAFT — retrofit)
 
@@ -86,12 +100,27 @@ def scan(root: Path):
     languages = set()
     modules = set()
     components = []
-    for p in root.rglob("*"):
-        if any(part in SKIP_DIRS for part in p.parts):
+    for current, dirs, files in os.walk(root, topdown=True, onerror=lambda _err: None):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        current_path = Path(current)
+        try:
+            rel_current = current_path.relative_to(root)
+        except ValueError:
             continue
-        if p.is_file() and p.suffix in SOURCE_EXT:
+        if any(part in SKIP_DIRS for part in rel_current.parts):
+            dirs[:] = []
+            continue
+        for name in files:
+            p = current_path / name
+            if p.suffix not in SOURCE_EXT:
+                continue
+            try:
+                if not p.is_file():
+                    continue
+                rel = p.relative_to(root)
+            except OSError:
+                continue
             languages.add(p.suffix.lstrip("."))
-            rel = p.relative_to(root)
             if len(rel.parts) > 1:
                 modules.add(rel.parts[0])
             components.append(rel.as_posix())

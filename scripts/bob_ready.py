@@ -11,7 +11,7 @@ Criteria:
   2. at least one APPROVED spec
   3. validator passes (structure + spec-to-test traceability)
   4. runtime/golden checks pass (no errors)
-  5. tests/ directory present
+  5. a test suite is present (tests/, src/__tests__, or common test/spec files)
   6. AGENTS.md present (DOX context)
 
 Usage:
@@ -30,6 +30,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bob_validate as bv  # noqa: E402
 import bob_runtime_check as rc  # noqa: E402
 
+SKIP_DIRS = {
+    ".git",
+    ".github",
+    ".claude",
+    ".vercel",
+    "_archive",
+    "node_modules",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+    "coverage",
+}
+TEST_FILE_RE = re.compile(r"(^test_.*\.py$|.*(_test|\.test|\.spec)\.(py|js|mjs|cjs|ts|tsx|jsx)$)")
+
 
 def _count_approved_specs(root: Path) -> int:
     specs = root / "specs"
@@ -41,6 +57,30 @@ def _count_approved_specs(root: Path) -> int:
         if re.search(r"^status:\s*approved\s*$", text, re.MULTILINE):
             n += 1
     return n
+
+
+def _is_skipped(path: Path, root: Path) -> bool:
+    try:
+        rel = path.relative_to(root)
+    except ValueError:
+        return True
+    return any(part in SKIP_DIRS for part in rel.parts)
+
+
+def _has_test_suite(root: Path):
+    if (root / "tests").is_dir():
+        return True, "tests/"
+    if (root / "src" / "__tests__").is_dir():
+        return True, "src/__tests__/"
+    for candidate in root.rglob("*"):
+        if _is_skipped(candidate, root):
+            continue
+        try:
+            if candidate.is_file() and TEST_FILE_RE.match(candidate.name):
+                return True, str(candidate.relative_to(root)).replace("\\", "/")
+        except OSError:
+            continue
+    return False, "no tests/, src/__tests__, or *.(test|spec) files found"
 
 
 def assess(root: Path):
@@ -59,7 +99,8 @@ def assess(root: Path):
     r_errors, _ = rc.run(root)
     results.append(("runtime/golden checks pass", not r_errors, f"{len(r_errors)} error(s)"))
 
-    results.append(("tests/ directory present", (root / "tests").is_dir(), ""))
+    has_tests, test_detail = _has_test_suite(root)
+    results.append(("test suite present", has_tests, test_detail))
 
     results.append(("AGENTS.md present (DOX)", (root / "AGENTS.md").is_file(), ""))
 

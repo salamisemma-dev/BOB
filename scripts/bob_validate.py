@@ -100,10 +100,14 @@ def section_bodies(body: str):
     return out
 
 
-def validate(root: Path, traceability: bool = True):
+def validate(root: Path, traceability: bool = True, strict: bool = False):
     """Return (errors, warnings) lists of human-readable strings.
 
-    traceability=True also enforces the spec-to-test gate (see check_traceability)."""
+    traceability=True also enforces the spec-to-test gate (see check_traceability).
+    strict=True promotes the 'referenced test asserts nothing' warning to a hard error
+    (and traceability is forced on)."""
+    if strict:
+        traceability = True
     errors = []
     warnings = []
 
@@ -195,7 +199,7 @@ def validate(root: Path, traceability: bool = True):
         warnings.append("specs/ exists but contains no .md spec files.")
 
     if traceability:
-        t_errors, t_warnings = check_traceability(root, records)
+        t_errors, t_warnings = check_traceability(root, records, strict=strict)
         errors.extend(t_errors)
         warnings.extend(t_warnings)
 
@@ -226,7 +230,7 @@ def _looks_like_real_test(content: str) -> bool:
     return any(tok in content for tok in _ASSERTION_TOKENS)
 
 
-def check_traceability(root, records):
+def check_traceability(root, records, strict=False):
     """Anti-vibe gate: every APPROVED spec must tie to a real test, so a spec can't
     just 'look valid' while nothing exercises the behavior. A spec satisfies this when
     its Verification section names at least one test file that exists (and, if a
@@ -235,7 +239,8 @@ def check_traceability(root, records):
     Hard errors block (missing reference / missing file / missing test name). A
     referenced test file that contains no recognizable assertions is flagged as a
     *warning* — a test that asserts nothing can't prove the spec, but assertion styles
-    vary across runners, so we surface rather than block to avoid false positives.
+    vary across runners, so we surface rather than block to avoid false positives. Under
+    strict=True that assertionless case is promoted to a hard error.
 
     Exempt: type 'ai-workflow' (process/instruction specs) and any spec with frontmatter
     `verification: manual` — those are reviewed by a human, not a unit test.
@@ -275,11 +280,12 @@ def check_traceability(root, records):
                     f"'{path}'. Rename the reference or add the test."
                 )
             if not _looks_like_real_test(content):
-                warnings.append(
+                msg = (
                     f"{rel}: referenced test '{path}' contains no recognizable assertions "
                     "(expect/assert/...). A test that asserts nothing can't prove the spec — "
                     "verify it really exercises the behavior."
                 )
+                (errors if strict else warnings).append(msg)
     return errors, warnings
 
 
@@ -289,10 +295,16 @@ def main(argv=None):
     ap.add_argument("--json", action="store_true", help="emit JSON report")
     ap.add_argument("--no-traceability", action="store_true",
                     help="skip the spec-to-test gate (structural checks only)")
+    ap.add_argument("--strict", action="store_true",
+                    help="promote the 'test asserts nothing' warning to an error; forces "
+                         "traceability on (ignores --no-traceability). Use in CI.")
     args = ap.parse_args(argv)
 
     root = Path(args.root).resolve()
-    errors, warnings = validate(root, traceability=not args.no_traceability)
+    traceability = not args.no_traceability
+    if args.strict and args.no_traceability:
+        print("note: --strict overrides --no-traceability (traceability forced on).")
+    errors, warnings = validate(root, traceability=traceability, strict=args.strict)
 
     if args.json:
         print(json.dumps({"root": str(root), "errors": errors, "warnings": warnings}, indent=2))

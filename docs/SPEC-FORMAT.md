@@ -46,7 +46,9 @@ consumed_by: [<spec-ids or components>]  # downstream impact surface
   resolve (warning).
 
 Run it: `python scripts/bob_validate.py <project-root>` (exit 1 on any error).
-JSON report: add `--json`.
+JSON report: add `--json`. CI/anti-vibe: add `--strict` to turn the "referenced test
+asserts nothing" warning into a hard error and force the traceability gate on (ignores
+`--no-traceability`).
 
 ## The rule
 No code without an approved spec. Change the spec first, then regenerate code. CI

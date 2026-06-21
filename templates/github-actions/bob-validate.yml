@@ -13,8 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Validate spec layer (structure + spec-to-test gate)
-        run: python scripts/bob_validate.py .
+      - name: Validate spec layer (strict: structure + spec-to-test + assertion gate)
+        run: python scripts/bob_validate.py . --strict
       - name: Runtime/golden checks
         run: python scripts/bob_runtime_check.py .
       - name: Adoption gate + run the test suite (READY means specs valid AND tests green)

@@ -213,6 +213,22 @@ class TestTraceability(unittest.TestCase):
         self.assertEqual(errors, [])  # not blocked (assertion styles vary)
         self.assertTrue(any("no recognizable assertions" in w for w in warnings))
 
+    def test_strict_promotes_assertionless_to_error(self):
+        d = self._root()
+        write(d, "tests/empty.py", "def test_nothing():\n    pass\n")
+        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "tests/empty.py::test_nothing")
+        write(d, "specs/x/s.md", spec)
+        errors, _ = bv.validate(d, strict=True)
+        self.assertTrue(any("no recognizable assertions" in e for e in errors))
+
+    def test_strict_forces_traceability_on(self):
+        d = self._root()
+        spec = GOOD_SPEC.replace("See `tests/test_thing.py::test_it`.", "manual review only")
+        write(d, "specs/x/s.md", spec)
+        # strict=True must ignore traceability=False and still gate.
+        errors, _ = bv.validate(d, traceability=False, strict=True)
+        self.assertTrue(any("no test reference" in e for e in errors))
+
     def test_real_assertions_no_warning(self):
         d = self._root()
         write(d, "tests/real.py", "def test_x():\n    assert 1 == 1\n")

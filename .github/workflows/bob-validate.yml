@@ -20,8 +20,8 @@ jobs:
       - name: Tooling self-tests (validator, traceability, runtime, ready, benchmark)
         run: python -m unittest discover -s tests -v
 
-      - name: Validate shipped example spec layer (structure + spec-to-test gate)
-        run: python scripts/bob_validate.py examples/todo-api
+      - name: Validate shipped example spec layer (strict: assertionless tests fail)
+        run: python scripts/bob_validate.py examples/todo-api --strict
 
       - name: Runtime/golden checks on shipped example
         run: python scripts/bob_runtime_check.py examples/todo-api

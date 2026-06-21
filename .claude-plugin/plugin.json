@@ -1,0 +1,19 @@
+{
+  "name": "bob",
+  "version": "1.0.0",
+  "description": "Bob — senior-engineer build workflow in one skill. Spec-Driven Development (constitution + executable versioned specs as permanent system memory), persistent project memory + DOX contracts, two-tier plan/execute with cheap sub-agents, TDD behind code-review gates. Builds new projects and safely reorganizes existing drifted ones. Anti-vibe-coding, anti-drift, lower token cost.",
+  "author": {
+    "name": "Urvin Banda"
+  },
+  "keywords": [
+    "workflow",
+    "spec-driven-development",
+    "sdd",
+    "memory",
+    "sub-agents",
+    "tdd",
+    "code-review",
+    "anti-drift",
+    "retrofit"
+  ]
+}

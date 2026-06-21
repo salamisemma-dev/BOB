@@ -1,0 +1,16 @@
+{
+  "name": "bob-marketplace",
+  "owner": {
+    "name": "Urvin Banda"
+  },
+  "metadata": {
+    "description": "Marketplace hosting the Bob build-workflow plugin."
+  },
+  "plugins": [
+    {
+      "name": "bob",
+      "source": "./",
+      "description": "Senior-engineer build workflow: Spec-Driven Development + persistent memory + two-tier sub-agent execution + TDD/review gates. New builds and retrofit of existing projects."
+    }
+  ]
+}

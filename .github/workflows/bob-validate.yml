@@ -25,8 +25,8 @@ jobs:
       - name: Runtime/golden checks on shipped example
         run: python scripts/bob_runtime_check.py examples/todo-api
 
-      - name: Adoption gate (example must be BOB-ready)
-        run: python scripts/bob_ready.py examples/todo-api
+      - name: Adoption gate (example must be BOB-ready + tests green)
+        run: python scripts/bob_ready.py examples/todo-api --run-tests
 
       - name: Demo unit tests (spec-traced)
         run: python -m unittest discover -s examples/todo-api/tests -v

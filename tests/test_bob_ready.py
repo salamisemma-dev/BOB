@@ -63,6 +63,35 @@ class TestReady(unittest.TestCase):
             ok, _ = br._has_test_suite(root)
             self.assertFalse(ok)
 
+    def test_run_tests_adds_criterion_and_passes_on_green(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            write(root, "tests/test_ok.py",
+                  "import unittest\n"
+                  "class T(unittest.TestCase):\n"
+                  "    def test_ok(self):\n        self.assertTrue(True)\n")
+            results = br.assess(root, run_tests=True)
+            names = [n for n, _, _ in results]
+            self.assertIn("test suite passes (--run-tests)", names)
+            passed = {n: p for n, p, _ in results}["test suite passes (--run-tests)"]
+            self.assertTrue(passed)
+
+    def test_run_tests_fails_on_red_suite(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            write(root, "tests/test_bad.py",
+                  "import unittest\n"
+                  "class T(unittest.TestCase):\n"
+                  "    def test_bad(self):\n        self.fail('boom')\n")
+            passed, _ = br._run_tests(root)
+            self.assertFalse(passed)
+
+    def test_run_tests_no_command_detected(self):
+        with tempfile.TemporaryDirectory() as d:
+            passed, detail = br._run_tests(Path(d))
+            self.assertFalse(passed)
+            self.assertIn("no runnable test command", detail)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,7 +13,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Validate spec layer (fail on drift)
+      - name: Validate spec layer (structure + spec-to-test gate)
         run: python scripts/bob_validate.py .
-      # - name: Tests
-      #   run: python -m unittest discover -s tests
+      - name: Runtime/golden checks
+        run: python scripts/bob_runtime_check.py .
+      - name: Adoption gate + run the test suite (READY means specs valid AND tests green)
+        run: python scripts/bob_ready.py . --run-tests
+        # For Node/TS projects, ensure deps are installed first:
+        #   - uses: actions/setup-node@v4
+        #   - run: npm ci
+        # bob_ready --run-tests auto-detects `npm test` from package.json.
+
+# Make this workflow a REQUIRED status check on your default branch (branch
+# protection) so a red gate blocks merge — that's what makes BOB enforcing, not advisory.

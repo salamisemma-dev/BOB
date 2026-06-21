@@ -14,8 +14,11 @@ Criteria:
   5. a test suite is present (tests/, src/__tests__, or common test/spec files)
   6. AGENTS.md present (DOX context)
 
+With --run-tests, a 7th criterion runs the project's actual test suite and requires it
+to pass — so "READY" means specs valid AND tests green, not merely "a test file exists".
+
 Usage:
-    python bob_ready.py [PROJECT_ROOT] [--json]
+    python bob_ready.py [PROJECT_ROOT] [--json] [--run-tests]
 Exit 0 only if every criterion passes.
 """
 from __future__ import annotations
@@ -23,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -83,7 +87,37 @@ def _has_test_suite(root: Path):
     return False, "no tests/, src/__tests__, or *.(test|spec) files found"
 
 
-def assess(root: Path):
+def _detect_test_command(root: Path):
+    """Pick how to run this project's tests. Returns (argv, label) or (None, reason)."""
+    pkg = root / "package.json"
+    if pkg.is_file():
+        try:
+            data = json.loads(pkg.read_text(encoding="utf-8", errors="replace"))
+            if isinstance(data.get("scripts"), dict) and data["scripts"].get("test"):
+                return (["npm", "test", "--silent"], "npm test")
+        except json.JSONDecodeError:
+            pass
+    if (root / "tests").is_dir():
+        return ([sys.executable, "-m", "unittest", "discover", "-s", "tests"],
+                "python -m unittest discover -s tests")
+    if list(root.glob("test_*.py")):
+        return ([sys.executable, "-m", "unittest", "discover"], "python -m unittest")
+    return (None, "no runnable test command detected (package.json test script or tests/)")
+
+
+def _run_tests(root: Path):
+    cmd, label = _detect_test_command(root)
+    if cmd is None:
+        return False, label
+    try:
+        proc = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True,
+                              shell=(cmd[0] == "npm"))
+    except OSError as e:
+        return False, f"{label}: could not run ({e})"
+    return proc.returncode == 0, f"{label}: {'passed' if proc.returncode == 0 else 'FAILED'}"
+
+
+def assess(root: Path, run_tests: bool = False):
     """Return a list of (criterion, passed, detail)."""
     results = []
 
@@ -104,6 +138,10 @@ def assess(root: Path):
 
     results.append(("AGENTS.md present (DOX)", (root / "AGENTS.md").is_file(), ""))
 
+    if run_tests:
+        passed, detail = _run_tests(root)
+        results.append(("test suite passes (--run-tests)", passed, detail))
+
     return results
 
 
@@ -111,10 +149,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="BOB adoption / readiness gate.")
     ap.add_argument("root", nargs="?", default=".")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--run-tests", action="store_true",
+                    help="also run the project's test suite and require it to pass")
     args = ap.parse_args(argv)
 
     root = Path(args.root).resolve()
-    results = assess(root)
+    results = assess(root, run_tests=args.run_tests)
     ready = all(p for _, p, _ in results)
 
     if args.json:

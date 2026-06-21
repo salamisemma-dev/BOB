@@ -84,10 +84,12 @@ class TestRuntimeManualOptOut(unittest.TestCase):
         p.write_text(text, encoding="utf-8")
         return d
 
-    def test_manual_skips_without_warning(self):
+    def test_manual_skips_golden_but_is_surfaced(self):
         errors, warnings = rc.run(self._write(SQL_SPEC))
         self.assertEqual(errors, [])
+        # no false "no json block" warning, but the opt-out IS surfaced as visible info
         self.assertFalse(any("no ```json" in w for w in warnings))
+        self.assertTrue(any("runtime: manual" in w for w in warnings))
 
     def test_without_optout_warns(self):
         errors, warnings = rc.run(self._write(NO_JSON_SPEC))

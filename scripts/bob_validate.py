@@ -195,7 +195,9 @@ def validate(root: Path, traceability: bool = True):
         warnings.append("specs/ exists but contains no .md spec files.")
 
     if traceability:
-        errors.extend(check_traceability(root, records))
+        t_errors, t_warnings = check_traceability(root, records)
+        errors.extend(t_errors)
+        warnings.extend(t_warnings)
 
     return errors, warnings
 
@@ -213,16 +215,35 @@ def parse_test_refs(verification_text: str):
     return [(m.group(1).replace("\\", "/"), m.group(2)) for m in _TEST_REF_RE.finditer(verification_text)]
 
 
+# Tokens that signal a test actually asserts something (Python + common JS/TS runners).
+_ASSERTION_TOKENS = (
+    "assert", "expect(", "toBe", "toEqual", "toThrow", ".should", "chai",
+    "t.is(", "t.deepEqual", "self.assert",
+)
+
+
+def _looks_like_real_test(content: str) -> bool:
+    return any(tok in content for tok in _ASSERTION_TOKENS)
+
+
 def check_traceability(root, records):
     """Anti-vibe gate: every APPROVED spec must tie to a real test, so a spec can't
     just 'look valid' while nothing exercises the behavior. A spec satisfies this when
     its Verification section names at least one test file that exists (and, if a
     ::test_name is given, that the test is defined in that file).
 
+    Hard errors block (missing reference / missing file / missing test name). A
+    referenced test file that contains no recognizable assertions is flagged as a
+    *warning* — a test that asserts nothing can't prove the spec, but assertion styles
+    vary across runners, so we surface rather than block to avoid false positives.
+
     Exempt: type 'ai-workflow' (process/instruction specs) and any spec with frontmatter
     `verification: manual` — those are reviewed by a human, not a unit test.
+
+    Returns (errors, warnings).
     """
     errors = []
+    warnings = []
     for rel, fm, secs in records:
         if fm.get("status") != "approved":
             continue
@@ -246,14 +267,20 @@ def check_traceability(root, records):
                     f"{rel}: Verification references test file '{path}' which does not "
                     "exist. The spec-to-test link is broken (green CI would be a lie)."
                 )
-            elif name:
-                content = target.read_text(encoding="utf-8", errors="replace")
-                if f"def {name}" not in content and name not in content:
-                    errors.append(
-                        f"{rel}: Verification references test '{name}' not found in "
-                        f"'{path}'. Rename the reference or add the test."
-                    )
-    return errors
+                continue
+            content = target.read_text(encoding="utf-8", errors="replace")
+            if name and f"def {name}" not in content and name not in content:
+                errors.append(
+                    f"{rel}: Verification references test '{name}' not found in "
+                    f"'{path}'. Rename the reference or add the test."
+                )
+            if not _looks_like_real_test(content):
+                warnings.append(
+                    f"{rel}: referenced test '{path}' contains no recognizable assertions "
+                    "(expect/assert/...). A test that asserts nothing can't prove the spec — "
+                    "verify it really exercises the behavior."
+                )
+    return errors, warnings
 
 
 def main(argv=None):

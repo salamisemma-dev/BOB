@@ -128,6 +128,10 @@ def run(root: Path):
         # frontmatter `runtime: manual` — their contract isn't a JSON Schema, so a
         # missing ```json block is intentional, not a gap.
         if (_frontmatter_field(text, "runtime") or "").lower() == "manual":
+            warnings.append(
+                f"{rel}: runtime: manual — golden checks intentionally skipped "
+                "(non-JSON/SQL contract). Confirm a real test covers this schema."
+            )
             continue
         schema = extract_schema(text)
         if schema is None:

@@ -65,7 +65,7 @@ class TestValidate(unittest.TestCase):
     def _root(self):
         d = Path(tempfile.mkdtemp())
         write(d, "constitution.md", "# c")
-        write(d, "tests/test_thing.py", "def test_it():\n    pass\n")
+        write(d, "tests/test_thing.py", "def test_it():\n    assert True\n")
         return d
 
 
@@ -203,6 +203,24 @@ class TestTraceability(unittest.TestCase):
         write(d, "specs/x/s.md", spec)
         errors, _ = bv.validate(d)
         self.assertEqual(errors, [])
+
+    def test_assertionless_test_warns_not_errors(self):
+        d = self._root()
+        write(d, "tests/empty.py", "def test_nothing():\n    pass\n")
+        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "tests/empty.py::test_nothing")
+        write(d, "specs/x/s.md", spec)
+        errors, warnings = bv.validate(d)
+        self.assertEqual(errors, [])  # not blocked (assertion styles vary)
+        self.assertTrue(any("no recognizable assertions" in w for w in warnings))
+
+    def test_real_assertions_no_warning(self):
+        d = self._root()
+        write(d, "tests/real.py", "def test_x():\n    assert 1 == 1\n")
+        spec = GOOD_SPEC.replace("tests/test_thing.py::test_it", "tests/real.py::test_x")
+        write(d, "specs/x/s.md", spec)
+        errors, warnings = bv.validate(d)
+        self.assertEqual(errors, [])
+        self.assertFalse(any("no recognizable assertions" in w for w in warnings))
 
 
 class TestShippedExample(unittest.TestCase):

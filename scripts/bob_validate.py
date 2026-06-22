@@ -82,6 +82,22 @@ def validate(root: Path, traceability: bool = True, strict: bool = False):
     if not (root / "constitution.md").is_file():
         errors.append("constitution.md missing at project root — every BOB project needs its supreme contract. Create it from templates/constitution.template.md.")
 
+    # Fleet governance: an unratified deviation from a shared invariant is drift until the
+    # core ratifies it. WARN by default, ERROR under --strict. See docs/FLEET-GOVERNANCE.md.
+    marker = re.compile(r"pending core ratification", re.IGNORECASE)
+    fleet_scan = [p for p in [root / "constitution.md"] if p.is_file()]
+    if (root / "specs").is_dir():
+        fleet_scan += [f for f in (root / "specs").rglob("*.md") if f.name != "AGENTS.md"]
+    for f in fleet_scan:
+        try:
+            if marker.search(f.read_text(encoding="utf-8", errors="replace")):
+                rel = f.relative_to(root).as_posix()
+                msg = (f"{rel}: unratified deviation marker ('pending core ratification'). "
+                       f"Ratify it in the core constitution + FLEET.md, or remove the marker. See docs/FLEET-GOVERNANCE.md.")
+                (errors if strict else warnings).append(msg)
+        except OSError:
+            pass
+
     specs_dir = root / "specs"
     if not specs_dir.is_dir():
         warnings.append("no specs/ directory found — nothing to validate. Add specs before generating code (no code without an approved spec).")

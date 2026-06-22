@@ -90,7 +90,7 @@ projects and the `examples/` demo.
 
 ## Verification
 
-- `python -m unittest discover -s tests -v` (tooling: 50 — validator 25, analyze 2, benchmark 7, runtime 9, ready 7)
+- `python -m unittest discover -s tests -v` (tooling: 55 — validator 27, analyze 2, benchmark 7, runtime 11, ready 8)
 - `python -m unittest discover -s examples/todo-api/tests -v` (demo: 9 tests)
 - `python scripts/bob_validate.py --strict examples/todo-api` → OK (structure + spec-to-test gate + assertion evidence)
 - `python scripts/bob_runtime_check.py examples/todo-api` → OK (golden data)
@@ -108,9 +108,3 @@ projects and the `examples/` demo.
   - `docs/` — SPEC-FORMAT, SUB-AGENTS, GOVERNANCE, ADOPTION, TUTORIAL, TROUBLESHOOTING, BENCHMARK, PVA.
   - `.github/workflows/` — CI that runs the verification above.
   - `commands/` — the `/bob` slash command.
-
-
-
-
-
-

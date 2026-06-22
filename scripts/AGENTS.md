@@ -19,7 +19,7 @@ Any change to validation rules requires a matching test and a doc update in the 
 
 ## Verification
 From the repo root:
-- `python -m unittest discover -s tests -v` (tooling 50+)
+- `python -m unittest discover -s tests -v` (tooling 55)
 - `python scripts/bob_validate.py --strict examples/todo-api` -> OK
 - `python scripts/bob_runtime_check.py examples/todo-api` -> OK
 - `python scripts/bob_ready.py examples/todo-api` -> READY 7/7

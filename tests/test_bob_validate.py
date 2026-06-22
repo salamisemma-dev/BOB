@@ -136,6 +136,22 @@ class TestValidate(unittest.TestCase):
         errors, _ = bv.validate(d)
         self.assertTrue(any("missing required key 'owner'" in e for e in errors))
 
+    def test_fleet_deviation_marker_warns_by_default(self):
+        d = self._root()
+        write(d, "constitution.md", "# c\n\nDeviation: pending core ratification\n")
+        write(d, "specs/schema/schema-thing.md", GOOD_SPEC)
+        errors, warnings = bv.validate(d)
+        self.assertEqual(errors, [])
+        self.assertTrue(any("pending core ratification" in w for w in warnings))
+
+    def test_fleet_deviation_marker_fails_under_strict(self):
+        d = self._root()
+        write(d, "constitution.md", "# c\n")
+        write(d, "specs/schema/schema-thing.md", GOOD_SPEC + "\nPending Core Ratification\n")
+        errors, warnings = bv.validate(d, strict=True)
+        self.assertTrue(any("pending core ratification" in e for e in errors))
+        self.assertEqual(warnings, [])
+
 
 class TestTraceability(unittest.TestCase):
     def _root(self):

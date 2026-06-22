@@ -1,22 +1,15 @@
 ---
 name: bob
 description: >-
-  Bob — the one workflow to run when building, extending, OR reorganizing a software
-  project — start a feature, ship a module, add a subsystem, kick off a new app, or
-  retrofit an existing messy codebase into a clean structure. Enforces senior-
-  engineer discipline so work stays on track instead of drifting: recall prior
-  context, capture intent as executable versioned specs (Spec-Driven Development),
-  sharpen requirements, plan, execute test-first behind quality gates using cheaper
-  sub-agents, then persist what was decided. Use this skill whenever the user types
-  /bob, says "build me X", "let's add a feature", "start a new project",
-  "implement <subsystem>", "reorganize/herorganiseer this project", "fix the
-  structure", "ik ga een project bouwen", or any non-trivial coding task that
-  deserves a real workflow rather than ad-hoc edits. It wires together project
-  memory (context-memory-bank), local context contracts (dox / AGENTS.md),
-  Spec-Driven Development (constitution + executable specs as permanent system
-  memory), a two-tier plan-then-execute model strategy, and TDD with code review —
-  all in one. Prefer this over jumping straight into code whenever the task is
-  bigger than a one-line fix.
+  Bob — disciplined workflow for building, extending, reorganizing, or retrofitting
+  software projects. Use when the user types /bob, says "build me X", "add a
+  feature", "start a new project", "implement a subsystem", "reorganize" /
+  "herorganiseer", "fix the structure", "ik ga een project bouwen", or any
+  non-trivial coding task that needs more than ad-hoc edits. Enforces recall,
+  DOX/AGENTS.md contracts, Spec-Driven Development (constitution + executable
+  specs as permanent memory), requirements sharpening, planning, test-first
+  execution, review, and persistence. Prefer this over jumping straight into code
+  for work where drift, lost context, or unclear acceptance criteria would hurt.
 ---
 
 # bob — Senior-engineer build workflow, all in one
@@ -121,7 +114,7 @@ In short:
    assumptions, constraints, downstream dependencies, and intent behind choices.
 3. **Approval gate.** Get the user's OK on the spec before any code. No code without
    an approved spec; when something must change, change the spec first, then regenerate.
-4. **Validate.** Run `python scripts/bob_validate.py --strict <project-root>` and `python scripts/bob_ready.py <project-root>` — both must pass; `bob_ready` runs tests by default before code. These are the executable checks (also run in CI), not a formality.
+4. **Validate.** Run `python scripts/bob_validate.py --strict <project-root>` and `python scripts/bob_ready.py <project-root>` — both must pass; `bob_ready` runs tests by default before code. Strict mode also fails unratified fleet-deviation markers (`pending core ratification`). These are the executable checks (also run in CI), not a formality.
 5. Commit the constitution + specs so they're version-controlled from the start.
 
 ---
@@ -211,6 +204,7 @@ project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 | "I'll use the big model for everything." | Routine implementation on the expensive model is wasted money. Cheap sub-agents do the doing. |
 | "We'll document/remember it later." | Later never comes; context evaporates at session end. `/remember` + DOX + spec update happen in Phase 4, every time. |
 | "This existing project is too messy to spec." | That's exactly when you retrofit — `references/retrofit-existing.md`. Specs extracted from messy code are how you stop the mess growing. |
+| "This project just needs to differ from a shared invariant." | A deviation is DRIFT until the core ratifies it. Mark it `pending core ratification`, raise it against the core, and record ratified deviations in `FLEET.md`. See `docs/FLEET-GOVERNANCE.md`. |
 
 ---
 
@@ -227,9 +221,10 @@ project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 - `references/spec-driven.md` — SDD model, constitution, 6 spec types + templates, CI/CD.
 - `references/retrofit-existing.md` — reorganize an existing/drifted project safely.
 - `references/sdd-pva.md` — plan van aanpak: pros, cons, and a fix for each con.
+- `docs/FLEET-GOVERNANCE.md` — fleet governance: shared invariants, deviation ratification, cross-project drift prevention, and the core-owned `FLEET.md` register.
 
 ## Tooling (in the plugin repo)
-- `scripts/bob_validate.py` — strict spec validator + Python/JS/TS spec-to-test traceability gate; Phase 1.5 + CI.
+- `scripts/bob_validate.py` — strict spec validator + Python/JS/TS spec-to-test traceability gate + unratified fleet-deviation gate; Phase 1.5 + CI.
 - `scripts/bob_runtime_check.py` — golden-file checks: schema specs verified vs sample data.
 - `scripts/bob_ready.py` — adoption / fail-fast gate; strict validation + tests; exit 0 only if a project is BOB-ready.
 - `scripts/bob_analyze.py` — retrofit scaffolder: drafts constitution + spec stubs from code.
@@ -244,4 +239,3 @@ Calls (via `Skill`): `context-memory-bank`, `dox`, optionally
 `Agent`): `coder`, `general-purpose`, `tester`, `superpowers:code-reviewer`,
 `reviewer`, `Plan`. All degrade gracefully — if one isn't present, do that phase
 inline and continue.
-

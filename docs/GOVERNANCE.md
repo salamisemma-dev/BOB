@@ -25,6 +25,13 @@ On conflicting specs, the constitution wins; if the constitution is silent, the 
 more specific spec wins and the conflict is resolved by amending one of them — never by
 leaving both. Record the resolution in the amendment log / Intent.
 
+## Fleet / multi-project governance
+This file governs one project's specs. When BOB spans a **fleet** of projects sharing core
+invariants, cross-project deviations need their own process so they don't become silent
+drift — see `FLEET-GOVERNANCE.md` (deviation ratification, the core-owned `FLEET.md`
+register, and the `bob_validate.py` "pending core ratification" gate).
+
 ## Tooling
 - `python scripts/bob_validate.py .` — structural + reference integrity.
+- `python scripts/bob_validate.py --strict .` — also fails on unratified fleet deviations.
 - Spec diffs are plain `git diff` on Markdown — readable in any PR.

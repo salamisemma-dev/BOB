@@ -26,7 +26,7 @@ You fix that by always running the same disciplined loop, by making intent
 **sub-agents** and **persistent memory** to keep the main thread cheap, focused, and
 informed.
 
-Three ideas drive every phase:
+Four ideas drive every phase:
 
 - **Specs are the system's permanent memory.** Prompts evaporate. A constitution and
   versioned, executable specifications do not — they live in the repo, drive code
@@ -41,6 +41,14 @@ Three ideas drive every phase:
   requirements, planning, review. Cheap sub-agents do the repetitive doing:
   scaffolding, tests, code from a precise spec+plan. Plan once at high quality,
   execute cheaply, review at high quality.
+- **Minimal by default (build the least that satisfies the spec).** A spec defines
+  *what must be true*, not how much code to write — and spec rigor can quietly license
+  over-building. So every implementation climbs the laziness ladder: does it need to
+  exist (YAGNI) → already in the codebase → stdlib → native platform feature →
+  already-installed dep → one line → only then the minimum that works. Shortest working
+  diff that makes the spec's tests pass wins. This never weakens the spec, tests,
+  validation, or security — minimality shortens the *solution*, never the *guarantees*.
+  (Ladder + boundaries: `references/minimal-by-default.md`, learned from ponytail (MIT).)
 
 Run the phases in order. Track them with TodoWrite so drift is visible. Don't skip a
 phase — if one genuinely doesn't apply, say why, don't silently drop it.
@@ -90,9 +98,13 @@ new-build phases; if not and code already exists → retrofit.
 1. **Grill the request** like a senior engineer reviewing a ticket: scope in/out,
    inputs, outputs, error cases, constraints, acceptance criterion. Ask the questions
    whose answers change the design. (Use `superpowers:brainstorming` if open-ended.)
-2. Flag technical debt this work will touch — note it, don't route around it.
+2. **Question whether it needs to exist at all (YAGNI).** Before speccing, ask: is this
+   speculative? Does the codebase / stdlib / platform already do it? The cheapest spec is
+   the one you don't write because the feature shouldn't exist. Say so in one line and
+   drop it.
+3. Flag technical debt this work will touch — note it, don't route around it.
 
-Output: a short, testable definition of done.
+Output: a short, testable definition of done — scoped to the least that's actually needed.
 
 ---
 
@@ -145,9 +157,16 @@ For each task (respect sequencing; parallelize independent tasks):
    red → green → refactor. Independent tasks → spawn in parallel in one message.
    Pass `model: "haiku"` (or `sonnet`) for routine implementation — the two-tier cost
    saving. Keep the expensive model for thinking and review.
+   Instruct the agent to **climb the laziness ladder** (`references/minimal-by-default.md`):
+   reuse what's in the codebase, prefer stdlib/native/already-installed over new deps,
+   and ship the shortest diff that makes the spec's tests pass. Mark deliberate
+   simplifications with a `bob:`/`ponytail:` comment naming the ceiling and upgrade path.
 2. **Quality gate after each task.** Review with the **expensive** model via the
    `superpowers:code-reviewer` agent or `reviewer`. Verify the code conforms to its
-   spec and the constitution. Block on real findings; loop back to fix.
+   spec and the constitution. Reject over-engineering as a real finding: an abstraction
+   with one implementation, a new dependency for a few lines, scaffolding "for later" —
+   the smallest change that satisfies the spec is the correct one. Block on real
+   findings; loop back to fix.
 3. **Run the project's checks** (tests, lint, build, and spec validation). Don't
    declare a task done on unverified code — if checks fail, say so and fix.
 
@@ -205,7 +224,7 @@ project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 | "We'll document/remember it later." | Later never comes; context evaporates at session end. `/remember` + DOX + spec update happen in Phase 4, every time. |
 | "This existing project is too messy to spec." | That's exactly when you retrofit — `references/retrofit-existing.md`. Specs extracted from messy code are how you stop the mess growing. |
 | "This project just needs to differ from a shared invariant." | A deviation is DRIFT until the core ratifies it. Mark it `pending core ratification`, raise it against the core, and record ratified deviations in `FLEET.md`. See `docs/FLEET-GOVERNANCE.md`. |
-
+| "The spec is big, so the code must be big." | The spec says *what must be true*, not how much code. Climb the ladder: reuse/stdlib/native/one line before custom. The shortest diff that passes the tests is the spec'd answer (`references/minimal-by-default.md`). |
 ---
 
 ## Why this saves tokens & survives 6 months
@@ -222,7 +241,9 @@ project; details in `docs/SPEC-FORMAT.md` and `references/spec-driven.md`.
 - `references/retrofit-existing.md` — reorganize an existing/drifted project safely.
 - `references/sdd-pva.md` — plan van aanpak: pros, cons, and a fix for each con.
 - `docs/FLEET-GOVERNANCE.md` — fleet governance: shared invariants, deviation ratification, cross-project drift prevention, and the core-owned `FLEET.md` register.
-
+- `references/minimal-by-default.md` — the laziness ladder: build the least that
+  satisfies the spec (learned from ponytail, MIT), with the hard boundary that
+  minimality never weakens specs/tests/security.
 ## Tooling (in the plugin repo)
 - `scripts/bob_validate.py` — strict spec validator + Python/JS/TS spec-to-test traceability gate + unratified fleet-deviation gate; Phase 1.5 + CI.
 - `scripts/bob_runtime_check.py` — golden-file checks: schema specs verified vs sample data.
